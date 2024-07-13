@@ -14,7 +14,7 @@ export function Home() {
   })
   return (
     <div className="flex flex-col min-h-[100dvh]">
-      <header className="px-4 lg:px-6 h-14 flex items-center">
+      <header className="px-4 lg:px-6 h-14 flex items-center border-b-[1px]">
         <Link
           href="#"
           className="flex items-center justify-center"
@@ -26,21 +26,21 @@ export function Home() {
         <nav className="ml-auto flex gap-4 sm:gap-6">
           <Link
             href="#"
-            className="text-sm font-medium hover:underline underline-offset-4"
+            className="text-lg font-medium hover:underline underline-offset-4"
             prefetch={false}
           >
             About
           </Link>
           <Link
             href="#"
-            className="text-sm font-medium hover:underline underline-offset-4"
+            className="text-lg font-medium hover:underline underline-offset-4"
             prefetch={false}
           >
             Projects
           </Link>
           <Link
             href="#"
-            className="text-sm font-medium hover:underline underline-offset-4"
+            className="text-lg font-medium hover:underline underline-offset-4"
             prefetch={false}
           >
             Contact
