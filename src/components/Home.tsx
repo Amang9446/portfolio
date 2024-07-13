@@ -6,7 +6,8 @@ import { AboutMe } from "./AboutMe";
 import { Footer } from "./Footer";
 import { Projects } from "./Projects";
 import Image from "next/image";
-import { Typewriter, useTypewriter } from "react-simple-typewriter";
+import { Link as ScrollLink, animateScroll as scroll } from "react-scroll";
+import { useTypewriter } from "react-simple-typewriter";
 export function Home() {
   const [text] = useTypewriter({
     words: ["Aman Gupta", "Fullstack Developer", "Mobile Developer"],
@@ -21,34 +22,34 @@ export function Home() {
           prefetch={false}
         >
           <MountainIcon className="h-6 w-6" />
-          <span className="sr-only">John Doe</span>
+          <span className="sr-only">Aman Gupta</span>
         </Link>
         <nav className="ml-auto flex gap-4 sm:gap-6">
-          <Link
-            href="#"
+          <ScrollLink
+            to="about"
+            smooth={true}
             className="text-lg font-medium hover:underline underline-offset-4"
-            prefetch={false}
           >
             About
-          </Link>
-          <Link
-            href="#"
+          </ScrollLink>
+          <ScrollLink
+            to="projects"
+            smooth={true}
             className="text-lg font-medium hover:underline underline-offset-4"
-            prefetch={false}
           >
             Projects
-          </Link>
-          <Link
-            href="#"
+          </ScrollLink>
+          <ScrollLink
+            to="contact"
+            smooth={true}
             className="text-lg font-medium hover:underline underline-offset-4"
-            prefetch={false}
           >
             Contact
-          </Link>
+          </ScrollLink>
         </nav>
       </header>
       <main className="flex-1">
-        <section className="w-full py-12 md:py-24 lg:py-32">
+        <section id="home" className="w-full py-12 md:py-24 lg:py-32">
           <div className="container px-4 md:px-6">
             <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
               <div className="flex flex-col justify-center space-y-4">
@@ -65,20 +66,20 @@ export function Home() {
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                  <Link
-                    href="#"
+                  <ScrollLink
+                    to="projects"
+                    smooth={true}
                     className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
-                    prefetch={false}
                   >
                     View Projects
-                  </Link>
-                  <Link
-                    href="#"
+                  </ScrollLink>
+                  <ScrollLink
+                    to="contact"
+                    smooth={true}
                     className="inline-flex h-10 items-center justify-center rounded-md border border-input bg-background px-8 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
-                    prefetch={false}
                   >
                     Contact Me
-                  </Link>
+                  </ScrollLink>
                 </div>
               </div>
               <Image
@@ -93,9 +94,9 @@ export function Home() {
             </div>
           </div>
         </section>
-        <Projects />
-        <AboutMe />
-        <Contact />
+        <Projects id="projects" />
+        <AboutMe id="about" />
+        <Contact id="contact" />
       </main>
       <Footer />
     </div>

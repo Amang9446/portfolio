@@ -10,7 +10,7 @@ type ContactForm = {
   email: string;
   message: string;
 };
-export const Contact = () => {
+export const Contact = ({ id }: { id: string }) => {
   const [formData, setFormData] = React.useState<ContactForm>({
     name: "",
     email: "",
@@ -85,7 +85,7 @@ export const Contact = () => {
   };
 
   return (
-    <section id="contact" className="w-full py-12 md:py-24 lg:py-32 bg-muted">
+    <section id={id} className="w-full py-12 md:py-24 lg:py-32 bg-muted">
       <div className="container px-4 md:px-6">
         <div className="flex flex-col items-center justify-center space-y-4 text-center">
           <div className="space-y-2">
