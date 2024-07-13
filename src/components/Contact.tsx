@@ -3,19 +3,24 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { toast } from "react-hot-toast";
+import { ClipLoader } from "react-spinners";
 import React from "react";
 import axios from "axios";
+
 type ContactForm = {
   name: string;
   email: string;
   message: string;
 };
+
 export const Contact = ({ id }: { id: string }) => {
   const [formData, setFormData] = React.useState<ContactForm>({
     name: "",
     email: "",
     message: "",
   });
+
+  const [isSubmitted, setIsSubmitted] = React.useState(false);
 
   const { name, email, message } = formData;
 
@@ -28,6 +33,7 @@ export const Contact = ({ id }: { id: string }) => {
       [name]: value,
     });
   };
+
   const validateForm = () => {
     if (!name || !email || !message) {
       toast.error("All fields are required.");
@@ -43,6 +49,7 @@ export const Contact = ({ id }: { id: string }) => {
   const isValidEmail = (value: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
   };
+
   const handleButtonClick = async (
     event: React.MouseEvent<HTMLButtonElement>
   ) => {
@@ -50,6 +57,7 @@ export const Contact = ({ id }: { id: string }) => {
     if (!validateForm()) {
       return;
     }
+    setIsSubmitted(true); // Start showing the loader
     try {
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_BASE_URL}contact/contact-me`,
@@ -59,28 +67,30 @@ export const Contact = ({ id }: { id: string }) => {
           message,
         }
       );
-      console.log(response.data);
-
-      toast.success("Contact has been sent successfully", {
-        style: {
-          border: "1px solid #713200",
-          padding: "16px",
-          color: "#c7a26b",
-        },
-        iconTheme: {
-          primary: "#c7a26b",
-          secondary: "#ECE3D4",
-        },
-        duration: 5000,
-      });
-      setFormData({
-        name: "",
-        email: "",
-        message: "",
-      });
+      if (response.status === 201) {
+        toast.success("Contact has been sent successfully", {
+          style: {
+            border: "1px solid #713200",
+            padding: "16px",
+            color: "#c7a26b",
+          },
+          iconTheme: {
+            primary: "#c7a26b",
+            secondary: "#ECE3D4",
+          },
+          duration: 5000,
+        });
+        setFormData({
+          name: "",
+          email: "",
+          message: "",
+        });
+      }
     } catch (error) {
       console.error("Error:", error);
       toast.error("Failed to send contact. Please try again later.");
+    } finally {
+      setIsSubmitted(false);
     }
   };
 
@@ -123,7 +133,13 @@ export const Contact = ({ id }: { id: string }) => {
                 onChange={handleInputChange}
               />
               <Button onClick={handleButtonClick} className="w-full">
-                Submit
+                {isSubmitted ? (
+                  <div className="flex justify-center items-center">
+                    <ClipLoader size={30} color="#713200" />
+                  </div>
+                ) : (
+                  "Submit"
+                )}
               </Button>
             </form>
           </div>

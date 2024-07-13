@@ -8,6 +8,7 @@ import { Projects } from "./Projects";
 import Image from "next/image";
 import { Link as ScrollLink, animateScroll as scroll } from "react-scroll";
 import { useTypewriter } from "react-simple-typewriter";
+
 export function Home() {
   const [text] = useTypewriter({
     words: ["Aman Gupta", "Fullstack Developer", "Mobile Developer"],
