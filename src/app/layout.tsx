@@ -4,6 +4,7 @@ import { DM_Sans } from "next/font/google";
 import { Space_Mono } from "next/font/google";
 import { ReactNode } from "react";
 import { Toaster } from "react-hot-toast";
+import { Analytics } from "@vercel/analytics/react"
 import { cn } from "@/lib/utils";
 import "./globals.css";
 
@@ -31,6 +32,7 @@ export default function Layout({ children }: LayoutProps) {
         <Toaster
           position="bottom-left"
         />
+        <Analytics />
         {children}
       </body>
     </html>
