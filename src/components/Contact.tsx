@@ -1,46 +1,134 @@
-import { Button } from "./ui/button"
-import { Input } from "./ui/input"
-import { Textarea } from "./ui/textarea"
-import { toast } from 'react-hot-toast';
+"use client";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Textarea } from "./ui/textarea";
+import { toast } from "react-hot-toast";
 import React from "react";
-export const Contact = ()=>{
-  const handleButtonClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault(); 
-    toast.success('Contact has been sent successfully', {
-      style: {
-        border: '1px solid #713200',
-        padding: '16px',
-        color: '#c7a26b',
-      },
-      iconTheme: {
-        primary: '#c7a26b',
-        secondary: '#ECE3D4',
-      },
-      duration: 5000,
+import axios from "axios";
+type ContactForm = {
+  name: string;
+  email: string;
+  message: string;
+};
+export const Contact = () => {
+  const [formData, setFormData] = React.useState<ContactForm>({
+    name: "",
+    email: "",
+    message: "",
+  });
+
+  const { name, email, message } = formData;
+
+  const handleInputChange = (
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = event.target;
+    setFormData({
+      ...formData,
+      [name]: value,
     });
   };
-    return (
-        <section id="contact" className="w-full py-12 md:py-24 lg:py-32 bg-muted">
-        <div className="container px-4 md:px-6">
-          <div className="flex flex-col items-center justify-center space-y-4 text-center">
-            <div className="space-y-2">
-              <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">Contact Me</h2>
-              <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                I&apos;d love to hear from you! Feel free to reach out with any questions or inquiries.
-              </p>
-            </div>
-            <div className="mx-auto w-full max-w-sm space-y-2">
-              <form className="flex flex-col gap-4">
-                <Input type="text" placeholder="Name" className="max-w-lg flex-1" />
-                <Input type="email" placeholder="Email" className="max-w-lg flex-1" />
-                <Textarea placeholder="Message" className="max-w-lg flex-1" />
-                <Button onClick={handleButtonClick} className="w-full">
-                  Submit
-                </Button>
-              </form>
-            </div>
+  const validateForm = () => {
+    if (!name || !email || !message) {
+      toast.error("All fields are required.");
+      return false;
+    }
+    if (!isValidEmail(email)) {
+      toast.error("Please enter a valid email address.");
+      return false;
+    }
+    return true;
+  };
+
+  const isValidEmail = (value: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  };
+  const handleButtonClick = async (
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    event.preventDefault();
+    if (!validateForm()) {
+      return;
+    }
+    try {
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_BASE_URL}contact/contact-me`,
+        {
+          name,
+          email,
+          message,
+        }
+      );
+      console.log(response.data);
+
+      toast.success("Contact has been sent successfully", {
+        style: {
+          border: "1px solid #713200",
+          padding: "16px",
+          color: "#c7a26b",
+        },
+        iconTheme: {
+          primary: "#c7a26b",
+          secondary: "#ECE3D4",
+        },
+        duration: 5000,
+      });
+      setFormData({
+        name: "",
+        email: "",
+        message: "",
+      });
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Failed to send contact. Please try again later.");
+    }
+  };
+
+  return (
+    <section id="contact" className="w-full py-12 md:py-24 lg:py-32 bg-muted">
+      <div className="container px-4 md:px-6">
+        <div className="flex flex-col items-center justify-center space-y-4 text-center">
+          <div className="space-y-2">
+            <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">
+              Contact Me
+            </h2>
+            <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+              I&apos;d love to hear from you! Feel free to reach out with any
+              questions or inquiries.
+            </p>
+          </div>
+          <div className="mx-auto w-full max-w-sm space-y-2">
+            <form className="flex flex-col gap-4">
+              <Input
+                type="text"
+                name="name"
+                placeholder="Name"
+                className="max-w-lg flex-1"
+                value={name}
+                onChange={handleInputChange}
+              />
+              <Input
+                type="email"
+                name="email"
+                placeholder="Email"
+                className="max-w-lg flex-1"
+                value={email}
+                onChange={handleInputChange}
+              />
+              <Textarea
+                name="message"
+                placeholder="Message"
+                className="max-w-lg flex-1"
+                value={message}
+                onChange={handleInputChange}
+              />
+              <Button onClick={handleButtonClick} className="w-full">
+                Submit
+              </Button>
+            </form>
           </div>
         </div>
-      </section>
-    )
-}
+      </div>
+    </section>
+  );
+};
