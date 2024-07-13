@@ -30,7 +30,7 @@ export default function Layout({ children }: LayoutProps) {
         className={cn("antialiased", fontHeading.variable, fontBody.variable)}
       >
         <Toaster
-          position="bottom-left"
+          position="top-center"
         />
         <Analytics />
         {children}
