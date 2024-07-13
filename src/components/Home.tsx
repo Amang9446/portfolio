@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import Link from "next/link";
 import { JSX, SVGProps } from "react";
 import { Contact } from "./Contact";
@@ -6,12 +6,12 @@ import { AboutMe } from "./AboutMe";
 import { Footer } from "./Footer";
 import { Projects } from "./Projects";
 import Image from "next/image";
-import { Typewriter, useTypewriter } from 'react-simple-typewriter'
+import { Typewriter, useTypewriter } from "react-simple-typewriter";
 export function Home() {
   const [text] = useTypewriter({
-    words: ['Aman Gupta', 'Fullstack Developer', 'Mobile Developer'],
-    loop: 0
-  })
+    words: ["Aman Gupta", "Fullstack Developer", "Mobile Developer"],
+    loop: 0,
+  });
   return (
     <div className="flex flex-col min-h-[100dvh]">
       <header className="px-4 lg:px-6 h-14 flex items-center border-b-[1px]">
@@ -53,9 +53,12 @@ export function Home() {
             <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
               <div className="flex flex-col justify-center space-y-4">
                 <div className="space-y-2">
-                  <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
-                    {text}
-                  </h1>
+                  <div className="h-10 sm:h-12 md:h-14 lg:h-16 xl:h-18">
+                    <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl">
+                      {text}
+                    </h1>
+                  </div>
+
                   <p className="max-w-[600px] text-muted-foreground md:text-xl">
                     Passionate web developer and designer, creating beautiful
                     and functional websites.
@@ -83,7 +86,7 @@ export function Home() {
                 width={550}
                 height={550}
                 quality={100}
-                style={{objectFit: 'initial'}}
+                style={{ objectFit: "initial" }}
                 alt="Animated Picture of Aman"
                 className="mx-auto aspect-video overflow-hidden rounded-xl object-cover sm:w-full lg:order-last lg:aspect-square"
               />
