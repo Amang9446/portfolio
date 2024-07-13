@@ -10,7 +10,7 @@ export const Contact = ()=>{
             <div className="space-y-2">
               <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">Contact Me</h2>
               <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                I'd love to hear from you! Feel free to reach out with any questions or inquiries.
+                I&apos;d love to hear from you! Feel free to reach out with any questions or inquiries.
               </p>
             </div>
             <div className="mx-auto w-full max-w-sm space-y-2">

@@ -1,4 +1,5 @@
 import { Link } from "lucide-react";
+import Image from "next/image";
 
 export const Intro = () => {
   return (
@@ -30,7 +31,7 @@ export const Intro = () => {
               </Link>
             </div>
           </div>
-          <img
+          <Image
             src="/placeholder.svg"
             width={550}
             height={550}

@@ -4,6 +4,7 @@ import { Contact } from "./Contact";
 import { AboutMe } from "./AboutMe";
 import { Footer } from "./Footer";
 import { Projects } from "./Projects";
+import Image from "next/image";
 
 export function Home() {
   return (
@@ -72,7 +73,7 @@ export function Home() {
                   </Link>
                 </div>
               </div>
-              <img
+              <Image
                 src="/placeholder.svg"
                 width={550}
                 height={550}
