@@ -10,7 +10,7 @@ export const AboutMe = ()=>{
                 About Me
               </h2>
               <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                I&apos;sm a passionate web developer and designer with a strong
+                I&apos;m a passionate web developer and designer with a strong
                 focus on creating beautiful and functional websites. I have
                 experience working with a variety of technologies, including
                 React, Next.js, and Tailwind CSS.

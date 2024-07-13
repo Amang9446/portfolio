@@ -1,3 +1,4 @@
+"use client"
 import Link from "next/link";
 import { JSX, SVGProps } from "react";
 import { Contact } from "./Contact";
@@ -5,8 +6,12 @@ import { AboutMe } from "./AboutMe";
 import { Footer } from "./Footer";
 import { Projects } from "./Projects";
 import Image from "next/image";
-
+import { Typewriter, useTypewriter } from 'react-simple-typewriter'
 export function Home() {
+  const [text] = useTypewriter({
+    words: ['Aman Gupta', 'Fullstack Developer', 'Mobile Developer'],
+    loop: 0
+  })
   return (
     <div className="flex flex-col min-h-[100dvh]">
       <header className="px-4 lg:px-6 h-14 flex items-center">
@@ -49,7 +54,7 @@ export function Home() {
               <div className="flex flex-col justify-center space-y-4">
                 <div className="space-y-2">
                   <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
-                    Aman Gupta
+                    {text}
                   </h1>
                   <p className="max-w-[600px] text-muted-foreground md:text-xl">
                     Passionate web developer and designer, creating beautiful
@@ -74,10 +79,12 @@ export function Home() {
                 </div>
               </div>
               <Image
-                src="/placeholder.svg"
+                src="https://pics.craiyon.com/2023-10-21/aa545e073a264959ad79913b4d761d73.webp"
                 width={550}
                 height={550}
-                alt="Hero"
+                quality={100}
+                style={{objectFit: 'initial'}}
+                alt="Animated Picture of Aman"
                 className="mx-auto aspect-video overflow-hidden rounded-xl object-cover sm:w-full lg:order-last lg:aspect-square"
               />
             </div>
