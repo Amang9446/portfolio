@@ -4,7 +4,8 @@ import { DM_Sans } from "next/font/google";
 import { Space_Mono } from "next/font/google";
 import { ReactNode } from "react";
 import { Toaster } from "react-hot-toast";
-import { Analytics } from "@vercel/analytics/react"
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { cn } from "@/lib/utils";
 import "./globals.css";
 
@@ -29,10 +30,9 @@ export default function Layout({ children }: LayoutProps) {
       <body
         className={cn("antialiased", fontHeading.variable, fontBody.variable)}
       >
-        <Toaster
-          position="top-center"
-        />
+        <Toaster position="top-center" />
         <Analytics />
+        <SpeedInsights />
         {children}
       </body>
     </html>

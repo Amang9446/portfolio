@@ -62,8 +62,8 @@ export function Home() {
                   </div>
 
                   <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                    Passionate web developer and designer, creating beautiful
-                    and functional websites.
+                    Passionate web and mobile developer crafting elegant,
+                    user-centric digital experiences.
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
