@@ -12,19 +12,19 @@ const projectData = [
   },
   {
     id: 2,
-    href: "https://amang9446.github.io/QR-Code-Generator/",
-    src: "https://res.cloudinary.com/dul8kwnvj/image/upload/v1720931430/piphlxuck9maaqfylhjk.png",
-    alt: "Qr Code Generator",
-    title: "Qr Code Generator",
-    description: "A sleek qr code generator website made with React",
-  },
-  {
-    id: 3,
     href: "https://github.com/Amang9446/NER-EVOLUTION",
     src: "https://res.cloudinary.com/dul8kwnvj/image/upload/v1720979141/exri4mm1upg9q8tgwz3x.png",
     alt: "NER Evolution",
     title: "NER+ Evolution",
     description: "Developed a named entity recognition model using spaCy",
+  },
+  {
+    id: 3,
+    href: "https://amang9446.github.io/QR-Code-Generator/",
+    src: "https://res.cloudinary.com/dul8kwnvj/image/upload/v1720931430/piphlxuck9maaqfylhjk.png",
+    alt: "Qr Code Generator",
+    title: "Qr Code Generator",
+    description: "A sleek qr code generator website made with React",
   },
   {
     id: 4,
