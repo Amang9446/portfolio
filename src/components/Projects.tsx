@@ -71,6 +71,7 @@ export const Projects = ({ id }: { id: string }) => {
                 href={project.href}
                 className="absolute inset-0 z-10"
                 prefetch={false}
+                target="_blank"
               >
                 <span className="sr-only">View Project</span>
               </Link>
