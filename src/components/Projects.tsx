@@ -35,20 +35,24 @@ export const Projects = ({ id }: { id: string }) => {
             </div>
           </div>
           <div className="relative overflow-hidden transition-transform duration-300 ease-in-out rounded-lg shadow-lg group hover:shadow-xl hover:-translate-y-2">
-            <Link href="#" className="absolute inset-0 z-10" prefetch={false}>
+            <Link
+              href="https://amang9446.github.io/QR-Code-Generator/"
+              className="absolute inset-0 z-10"
+              prefetch={false}
+            >
               <span className="sr-only">View Project</span>
             </Link>
             <Image
-              src="/placeholder.svg"
+              src="https://res.cloudinary.com/dul8kwnvj/image/upload/v1720931430/piphlxuck9maaqfylhjk.png"
               width={500}
               height={400}
-              alt="Project 2"
+              alt="Qr Code Generator"
               className="object-cover w-full h-64"
             />
             <div className="p-4 bg-background">
-              <h3 className="text-xl font-bold">Project 2</h3>
+              <h3 className="text-xl font-bold">Qr Code Generator</h3>
               <p className="text-sm text-muted-foreground">
-                A sleek and modern e-commerce website.
+                A sleek qr code generator website.
               </p>
             </div>
           </div>
@@ -71,13 +75,17 @@ export const Projects = ({ id }: { id: string }) => {
             </div>
           </div>
           <div className="relative overflow-hidden transition-transform duration-300 ease-in-out rounded-lg shadow-lg group hover:shadow-xl hover:-translate-y-2">
-            <Link href="#" className="absolute inset-0 z-10" prefetch={false}>
+            <Link
+              href="https://bg-changer-olive-three.vercel.app/"
+              className="absolute inset-0 z-10"
+              prefetch={false}
+            >
               <span className="sr-only">View Project</span>
             </Link>
             <Image
-              src="/placeholder.svg"
-              width={500}
-              height={400}
+              src="https://res.cloudinary.com/dul8kwnvj/image/upload/v1720930809/ma759qbroc1cjuwnlb5d.png"
+              width={200}
+              height={150}
               alt="Project 4"
               className="object-cover w-full h-64"
             />
