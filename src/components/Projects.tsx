@@ -20,6 +20,15 @@ const projectData = [
   },
   {
     id: 3,
+    href: "https://password-generator-dev-aman.vercel.app/",
+    src: "https://res.cloudinary.com/dul8kwnvj/image/upload/v1721238082/hdbta4jkfjnll5okx6qg.png",
+    alt: "Password Generator",
+    title: "Password Generator",
+    description:
+      "A simple sleek password generator game made using Next Js and Tailwind",
+  },
+  {
+    id: 4,
     href: "https://amang9446.github.io/QR-Code-Generator/",
     src: "https://res.cloudinary.com/dul8kwnvj/image/upload/v1720931430/piphlxuck9maaqfylhjk.png",
     alt: "Qr Code Generator",
@@ -27,20 +36,12 @@ const projectData = [
     description: "A sleek qr code generator website made with React",
   },
   {
-    id: 4,
+    id: 5,
     href: "https://amang9446.github.io/About-Aman/",
     src: "https://res.cloudinary.com/dul8kwnvj/image/upload/v1720981118/zzs3vbbxxsrcvdho8kws.png",
     alt: "About Page",
     title: "About Aman",
     description: "A minimal about page made  using HTML and CSS",
-  },
-  {
-    id: 5,
-    href: "https://github.com/Amang9446/Tic-Tac-Toe",
-    src: "https://res.cloudinary.com/dul8kwnvj/image/upload/v1720980519/ig5sswjexrww1mfn8oe8.png",
-    alt: "Tic Tac Toe",
-    title: "Tic Tac Toe",
-    description: "A simple sleek Tick Tack Toe game made using HTML and CSS",
   },
 ];
 
