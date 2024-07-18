@@ -25,7 +25,7 @@ const projectData = [
     alt: "Password Generator",
     title: "Password Generator",
     description:
-      "A simple sleek password generator game made using Next Js and Tailwind",
+      "A simple sleek password generator made using Next Js and Tailwind",
   },
   {
     id: 4,
