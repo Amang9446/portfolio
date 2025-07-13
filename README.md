@@ -21,7 +21,7 @@ src/
 │   │   └── nav-bar.tsx          # Navigation component
 │   ├── globals.css              # Global styles and animations
 │   ├── layout.tsx               # Root layout
-│   └── page.tsx                 # Main page (now clean and simple)
+│   └── page.tsx                 # Main page
 ├── components/
 │   ├── ui/
 │   │   └── icons.tsx            # Reusable SVG icons
@@ -97,7 +97,7 @@ export const portfolioConfig: PortfolioConfig = {
 
 ## 🛠️ Technologies Used
 
-- **Next.js 14**: React framework with App Router
+- **Next.js 15**: React framework with App Router
 - **TypeScript**: Type-safe development
 - **Tailwind CSS**: Utility-first CSS framework
 - **CSS Animations**: Custom keyframe animations
@@ -155,7 +155,6 @@ export const portfolioConfig: PortfolioConfig = {
 - **Easy Maintenance**: All content in one configuration file
 - **Scalable**: Modular component architecture
 - **Performance**: Optimized images and lazy loading
-- **Accessibility**: Proper ARIA labels and semantic HTML
 - **SEO Ready**: Meta tags and structured data
 - **Mobile First**: Responsive design for all devices
 
@@ -172,7 +171,6 @@ The portfolio is fully responsive with breakpoints for:
 - `npm run dev` - Start development server
 - `npm run build` - Build for production
 - `npm run start` - Start production server
-- `npm run lint` - Run ESLint
 
 ### Code Style
 - TypeScript for type safety
@@ -180,9 +178,9 @@ The portfolio is fully responsive with breakpoints for:
 - Prettier for code formatting
 - Component-based architecture
 
-## 📄 License
+## Usage Note
 
-This project is open source and available under the [MIT License](LICENSE).
+If you use this template, please give credits. A link back or a shoutout is appreciated!
 
 ## 🤝 Contributing
 
