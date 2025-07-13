@@ -105,7 +105,7 @@ export const portfolioConfig: PortfolioConfig = {
       description:
         "Replicated a note-taking app design from X/Twitter post using React Native & Expo",
       image:
-        "https://res.cloudinary.com/drzv3bviq/image/upload/v1734372554/vx6nirmnnybglbztaxrd.png",
+        "https://res.cloudinary.com/drzv3bviq/image/upload/v1752402953/Simulator_Screenshot_-_iPhone_16_Pro_-_2025-07-13_at_16.04.11_crs7a0.png",
       demoUrl: "https://x.com/Amang9446/status/1944032225856467410",
       githubUrl: "https://github.com/Amang9446/expo-notes-app",
       docsUrl:
