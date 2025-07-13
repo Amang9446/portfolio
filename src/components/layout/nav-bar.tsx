@@ -110,7 +110,7 @@ export default function NavBar() {
           </SheetTrigger>
           <SheetContent
             side="bottom"
-            className="bg-[#101010]/90 backdrop-blur-xl border-t border-[#333] rounded-t-3xl h-[65vh] max-h-[520px] shadow-2xl animate-fadeIn flex flex-col px-0 pt-2 pb-6"
+            className="bg-[#101010]/90 backdrop-blur-xl border-t border-[#333] rounded-t-3xl sm:h-[65vh] h-[90vh] sm:max-h-[520px] max-h-[95vh] shadow-2xl animate-fadeIn flex flex-col px-0 pt-2 pb-6 overflow-y-auto"
           >
             {/* Drag handle */}
             <div className="flex justify-center items-center mb-2">
