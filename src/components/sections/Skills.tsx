@@ -9,7 +9,7 @@ export default function Skills({ skills }: SkillsProps) {
   const toolSkills = skills.filter((skill) => skill.category === "tools");
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-6 space-y-6">
+    <div id="skills" className="w-full max-w-4xl mx-auto p-6 space-y-6">
       <div className="text-center space-y-2">
         <h1 className="text-3xl md:text-5xl tracking-tight font-extrabold">
           S<span className="underline">kills</span>

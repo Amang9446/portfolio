@@ -18,7 +18,7 @@ export default function Contact({ config }: ContactProps) {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto">
+    <div id="contact" className="w-full max-w-4xl mx-auto">
       <div className="rounded-xl text-card-foreground relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-card to-card/50 backdrop-blur-sm">
         <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:20px_20px]"></div>
         <div className="relative p-8 space-y-6">

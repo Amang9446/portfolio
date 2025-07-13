@@ -7,7 +7,10 @@ interface ProjectsProps {
 
 export default function Projects({ projects }: ProjectsProps) {
   return (
-    <section className="relative py-20 px-2 md:px-4 bg-gradient-to-br from-background via-background to-muted/10">
+    <section
+      id="projects"
+      className="relative py-20 px-2 md:px-4 bg-gradient-to-br from-background via-background to-muted/10"
+    >
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
       <div className="relative max-w-7xl mx-auto">
         <div className="text-center mb-16 transition-all duration-700 ease-out opacity-100 translate-y-0">
