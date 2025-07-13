@@ -1,15 +1,31 @@
+import { portfolioConfig } from "@/config/portfolio";
+import NavBar from "@/components/layout/nav-bar";
+import Hero from "@/components/sections/Hero";
+import Projects from "@/components/sections/Projects";
+import Skills from "@/components/sections/Skills";
+import Contact from "@/components/sections/Contact";
+import Footer from "@/components/layout/Footer";
+
 export default function Home() {
   return (
-    <div className="min-h-screen w-full">
-      {/* Your page content goes here */}
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-white text-4xl font-bold">
-          Welcome to My Portfolio
-        </h1>
-        <p className="text-gray-300 mt-4">
-          Software Engineer building seamless mobile and web applications
-        </p>
-      </div>
-    </div>
+    <main className="min-h-screen bg-background text-foreground">
+      {/* Navbar */}
+      <NavBar />
+
+      {/* Hero Section */}
+      <Hero config={portfolioConfig.hero} />
+
+      {/* Projects Section */}
+      <Projects projects={portfolioConfig.projects} />
+
+      {/* Skills Section */}
+      <Skills skills={portfolioConfig.skills} />
+
+      {/* Contact Section */}
+      <Contact config={portfolioConfig.contact} />
+
+      {/* Footer */}
+      <Footer author={portfolioConfig.metadata.author} />
+    </main>
   );
 }
