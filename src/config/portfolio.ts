@@ -51,7 +51,7 @@ export interface PortfolioConfig {
 export const portfolioConfig: PortfolioConfig = {
   hero: {
     name: "Aman",
-    title: "A Software Engineer",
+    title: "Software Engineer",
     subtitle: "I'm Aman, a..",
     description:
       "ReactNative Specialist Shaping High-Impact Projects. Open-Source Contributor with Proven Reach.",
