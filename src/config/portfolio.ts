@@ -72,10 +72,11 @@ export const portfolioConfig: PortfolioConfig = {
       docsUrl:
         "https://github.com/Amang9446/Get-Your-Business-Live?tab=readme-ov-file",
       tags: [
+        "React",
         "React Native",
         "TypeScript",
+        "JavaScript",
         "Expo",
-        "Clerk",
         "Redux",
         "Firebase",
       ],

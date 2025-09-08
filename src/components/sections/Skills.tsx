@@ -27,7 +27,7 @@ export default function Skills({ skills }: SkillsProps) {
               {techSkills.map((skill) => (
                 <div
                   key={skill.name}
-                  className="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  className="hover-lift inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80"
                 >
                   {skill.name}
                 </div>
@@ -45,7 +45,7 @@ export default function Skills({ skills }: SkillsProps) {
               {toolSkills.map((skill) => (
                 <div
                   key={skill.name}
-                  className="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  className="hover-lift inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80"
                 >
                   {skill.name}
                 </div>
