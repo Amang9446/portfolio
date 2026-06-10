@@ -1,34 +1,47 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   allowedDevOrigins: ["*.preview.same-app.com"],
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=63072000; includeSubDomains",
+          },
+        ],
+      },
+      {
+        source: "/admin/:path*",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+      },
+    ];
+  },
   images: {
-    unoptimized: true,
-    domains: [
-      "source.unsplash.com",
-      "images.unsplash.com",
-      "ext.same-assets.com",
-      "ugc.same-assets.com",
-    ],
+    formats: ["image/avif", "image/webp"],
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "source.unsplash.com",
+        hostname: "res.cloudinary.com",
         pathname: "/**",
       },
       {
         protocol: "https",
-        hostname: "images.unsplash.com",
+        hostname: "pbs.twimg.com",
         pathname: "/**",
       },
       {
         protocol: "https",
-        hostname: "ext.same-assets.com",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "ugc.same-assets.com",
-        pathname: "/**",
+        hostname: "nasejsbkkaonqcfkxljf.supabase.co",
+        pathname: "/storage/v1/object/public/**",
       },
     ],
   },

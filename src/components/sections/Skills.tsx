@@ -5,59 +5,47 @@ interface SkillsProps {
 }
 
 export default function Skills({ skills }: SkillsProps) {
-  const techSkills = skills.filter((skill) => skill.category === "tech");
-  const toolSkills = skills.filter((skill) => skill.category === "tools");
+  const groups = [
+    { label: "Technologies", items: skills.filter((s) => s.category === "tech") },
+    { label: "Tools", items: skills.filter((s) => s.category === "tools") },
+  ];
 
   return (
-    <div id="skills" className="w-full max-w-4xl mx-auto p-6 space-y-6">
-      <div className="text-center space-y-2">
-        <h1 className="text-3xl md:text-5xl tracking-tight font-extrabold">
-          S<span className="underline">kills</span>
-          <span className="ml-2 text-4xl">🛠️</span>
-        </h1>
-      </div>
-
-      <div className="grid gap-6">
-        <div className="rounded-xl border bg-card text-card-foreground shadow">
-          <div className="flex flex-col space-y-1.5 p-6">
-            <div className="font-semibold tracking-tight text-lg">Tech</div>
+    <section id="skills" className="scroll-mt-20 border-t border-border">
+      <div className="mx-auto max-w-5xl px-6 py-24 md:py-32">
+        <div className="flex flex-col gap-12 md:flex-row md:gap-24">
+          <div className="md:w-1/3">
+            <p className="font-mono text-xs uppercase tracking-[0.2em] text-primary">
+              Toolkit
+            </p>
+            <h2 className="mt-4 text-3xl font-semibold md:text-4xl">Skills</h2>
+            <p className="mt-5 max-w-[36ch] leading-relaxed text-muted-foreground">
+              The stack I reach for daily — and I pick up whatever a project
+              needs.
+            </p>
           </div>
-          <div className="p-6 pt-0">
-            <div className="flex flex-wrap gap-2">
-              {techSkills.map((skill) => (
-                <div
-                  key={skill.name}
-                  className="hover-lift inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                >
-                  {skill.name}
-                </div>
-              ))}
-            </div>
+
+          <div className="flex flex-col gap-10 md:w-2/3">
+            {groups.map((group) => (
+              <div key={group.label}>
+                <h3 className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                  {group.label}
+                </h3>
+                <ul className="mt-4 flex flex-wrap gap-x-2.5 gap-y-2.5">
+                  {group.items.map((skill) => (
+                    <li
+                      key={skill.name}
+                      className="rounded-md border border-border px-3 py-1.5 text-sm text-secondary-foreground transition-colors hover:border-primary/40"
+                    >
+                      {skill.name}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
         </div>
-
-        <div className="rounded-xl border bg-card text-card-foreground shadow">
-          <div className="flex flex-col space-y-1.5 p-6">
-            <div className="font-semibold tracking-tight text-lg">Tools</div>
-          </div>
-          <div className="p-6 pt-0">
-            <div className="flex flex-wrap gap-2">
-              {toolSkills.map((skill) => (
-                <div
-                  key={skill.name}
-                  className="hover-lift inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                >
-                  {skill.name}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <p className="text-center text-muted-foreground font-semibold">
-          And flexible enough to learn anything when needed
-        </p>
       </div>
-    </div>
+    </section>
   );
 }

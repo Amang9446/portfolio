@@ -4,81 +4,94 @@ import { getIcon } from "@/components/ui/icons";
 
 interface ProjectCardProps {
   project: Project;
-  delay?: number;
+  index: number;
 }
 
-export default function ProjectCard({ project, delay = 0 }: ProjectCardProps) {
-  return (
-    <div
-      className="transition-all duration-500 ease-out opacity-100 translate-y-0"
-      style={{ transitionDelay: `${delay}ms` }}
-    >
-      <div className="rounded-xl text-card-foreground shadow group relative overflow-hidden transition-all duration-500 border border-border/50 hover:border-primary/20 bg-card/30 h-full hover:bg-card/50">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,var(--tw-gradient-stops))] from-primary/0 via-primary/0 to-primary/0 group-hover:from-primary/5 group-hover:via-primary/2 group-hover:to-primary/0 transition-all duration-500 opacity-0 group-hover:opacity-100 pointer-events-none"></div>
+export default function ProjectCard({ project, index }: ProjectCardProps) {
+  const reversed = index % 2 === 1;
 
-        <div className="relative aspect-video overflow-hidden bg-muted/50 cursor-zoom-in group/image">
+  return (
+    <article
+      className={`group flex flex-col gap-8 md:items-center md:gap-14 ${
+        reversed ? "md:flex-row-reverse" : "md:flex-row"
+      }`}
+    >
+      <a
+        href={project.demoUrl ?? project.githubUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block w-full overflow-hidden rounded-xl md:w-1/2"
+        tabIndex={-1}
+        aria-hidden="true"
+      >
+        <div className="relative aspect-[4/3] rounded-xl border border-border bg-muted">
           <Image
             alt={project.title}
             loading="lazy"
-            decoding="async"
-            className="object-cover transition-all duration-500 group-hover:brightness-95 group-hover/image:scale-105"
             fill
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            sizes="(max-width: 768px) 100vw, 50vw"
+            className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
             src={project.image}
           />
-          <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
         </div>
+      </a>
 
-        <div className="p-4 md:p-6 pointer-events-auto">
-          <div className="space-y-3 mb-2 md:mb-4">
-            <h3 className="text-base md:text-xl font-semibold transition-colors duration-200">
-              {project.title}
-            </h3>
-            <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">
-              {project.description}
-            </p>
-          </div>
+      <div className="w-full md:w-1/2">
+        <span className="font-mono text-xs text-muted-foreground">
+          {String(index + 1).padStart(2, "0")}
+        </span>
+        <h3 className="mt-3 text-2xl font-semibold">{project.title}</h3>
+        <p className="mt-3 max-w-[48ch] leading-relaxed text-muted-foreground">
+          {project.description}
+        </p>
 
-          <div className="flex items-center gap-1.5">
-            {project.demoUrl && (
-              <a
-                className="flex items-center gap-1 py-1 px-1.5 text-xs font-medium text-primary bg-primary/10 hover:bg-primary/15 rounded-lg transition-colors duration-200"
-                href={project.demoUrl}
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                {getIcon("external-link")}
-                Demo
-              </a>
-            )}
+        <ul className="mt-5 flex flex-wrap gap-x-3 gap-y-1.5">
+          {project.tags.map((tag) => (
+            <li
+              key={tag}
+              className="font-mono text-xs text-muted-foreground after:ml-3 after:text-border after:content-['·'] last:after:content-none"
+            >
+              {tag}
+            </li>
+          ))}
+        </ul>
 
-            {project.githubUrl && (
-              <a
-                className="flex items-center gap-1 py-1 px-1.5 text-xs font-medium text-primary bg-primary/10 hover:bg-primary/15 rounded-lg transition-colors duration-200"
-                href={project.githubUrl}
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                {getIcon("github")}
-                GitHub
-              </a>
-            )}
-
-            {project.docsUrl && (
-              <a
-                className="flex items-center gap-1 py-1 px-1.5 text-xs font-medium text-primary bg-primary/10 hover:bg-primary/15 rounded-lg transition-colors duration-200"
-                href={project.docsUrl}
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                {getIcon("file-text")}
-                Docs
-              </a>
-            )}
-          </div>
+        <div className="mt-6 flex items-center gap-5 text-sm">
+          {project.demoUrl && (
+            <a
+              href={project.demoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 font-medium text-primary transition-opacity hover:opacity-80"
+            >
+              {getIcon("external-link", { className: "h-3.5 w-3.5" })}
+              Demo
+            </a>
+          )}
+          {project.githubUrl && (
+            <a
+              href={project.githubUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {getIcon("github", { className: "h-3.5 w-3.5" })}
+              Code
+            </a>
+          )}
+          {project.docsUrl && (
+            <a
+              href={project.docsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {getIcon("file-text", { className: "h-3.5 w-3.5" })}
+              Docs
+            </a>
+          )}
         </div>
       </div>
-    </div>
+    </article>
   );
 }

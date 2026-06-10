@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
+import Link from "next/link";
 import {
   Sheet,
   SheetContent,
@@ -9,174 +9,134 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { portfolioConfig } from "@/config/portfolio";
+import { portfolioConfig, type SocialLink } from "@/config/portfolio";
 import { getIcon } from "../ui/icons";
+import ThemeToggle from "../ui/theme-toggle";
 
-export default function NavBar() {
+const navLinks = [
+  { href: "/", label: "Home" },
+  { href: "/#projects", label: "Projects" },
+  { href: "/#skills", label: "Skills" },
+  { href: "/blog", label: "Blog" },
+  { href: "/#contact", label: "Contact" },
+];
+
+interface NavBarProps {
+  socialLinks?: SocialLink[];
+}
+
+export default function NavBar({
+  socialLinks = portfolioConfig.contact.socialLinks,
+}: NavBarProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-
-  const closeMenu = () => {
-    setIsMenuOpen(false);
-  };
-  const config = portfolioConfig;
+  const closeMenu = () => setIsMenuOpen(false);
 
   return (
-    <nav className="sticky top-0 z-30 w-full flex justify-between items-center px-6 py-5 bg-[#0f0f0f]/80 backdrop-blur-sm border-b border-[#333]">
-      <div className="flex items-center gap-2">
-        <a href="#" onClick={closeMenu}>
-          <Image
-            src="https://ext.same-assets.com/145519567/2330266646.svg"
-            alt="Aman Logo"
-            width={44}
-            height={44}
-            className="hover:scale-105 transition-transform duration-200"
-          />
-        </a>
-        <span className="ml-1 font-bold tracking-tight text-xl text-white">
+    <nav className="sticky top-0 z-30 w-full border-b border-border bg-background/85 backdrop-blur-sm">
+      <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+        <Link
+          href="/"
+          onClick={closeMenu}
+          className="font-display text-lg font-semibold tracking-tight"
+        >
           Aman
-        </span>
-      </div>
+          <span className="text-primary">.</span>
+        </Link>
 
-      {/* Desktop Navigation */}
-      <div className="hidden md:flex items-center gap-8 font-medium text-[#9ca3af]">
-        <a
-          href="#"
-          className="relative hover:text-white transition-colors duration-200 after:content-[''] after:absolute after:left-0 after:bottom-[-4px] after:w-full after:h-[2px] after:bg-[#89675c] after:scale-x-0 after:transition-transform after:duration-300 hover:after:scale-x-100 font-borel"
-        >
-          Home
-        </a>
-        <a
-          href="#projects"
-          className="relative hover:text-white transition-colors duration-200 after:content-[''] after:absolute after:left-0 after:bottom-[-4px] after:w-full after:h-[2px] after:bg-[#89675c] after:scale-x-0 after:transition-transform after:duration-300 hover:after:scale-x-100"
-        >
-          Projects
-        </a>
-        <a
-          href="#skills"
-          className="relative hover:text-white transition-colors duration-200 after:content-[''] after:absolute after:left-0 after:bottom-[-4px] after:w-full after:h-[2px] after:bg-[#89675c] after:scale-x-0 after:transition-transform after:duration-300 hover:after:scale-x-100"
-        >
-          Skills
-        </a>
-        <a
-          href="#contact"
-          className="relative hover:text-white transition-colors duration-200 after:content-[''] after:absolute after:left-0 after:bottom-[-4px] after:w-full after:h-[2px] after:bg-[#89675c] after:scale-x-0 after:transition-transform after:duration-300 hover:after:scale-x-100"
-        >
-          Contact
-        </a>
-      </div>
-
-      {/* Desktop Social Links */}
-
-      <div className="hidden lg:flex items-center gap-4">
-        {config.contact.socialLinks.map((social) => (
-          <a
-            key={social.name}
-            href={social.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-muted-foreground hover:text-primary transition-colors duration-200"
-            aria-label={social.name}
-          >
-            {getIcon(social.icon, { className: "h-6 w-6" })}
-          </a>
-        ))}
-      </div>
-
-      {/* Mobile Menu - Bottom Sheet */}
-      <div className="md:hidden">
-        <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-          <SheetTrigger asChild>
-            <button
-              className="flex flex-col gap-1 p-2"
-              aria-label="Toggle menu"
-              aria-expanded={isMenuOpen}
+        {/* Desktop navigation */}
+        <div className="hidden items-center gap-7 text-sm text-muted-foreground md:flex">
+          {navLinks.map((link) => (
+            <Link
+              key={link.label}
+              href={link.href}
+              className="transition-colors hover:text-foreground"
             >
-              <span
-                className={`w-6 h-0.5 bg-white transition-all duration-300 ${
-                  isMenuOpen ? "rotate-45 translate-y-1.5" : ""
-                }`}
-              ></span>
-              <span
-                className={`w-6 h-0.5 bg-white transition-all duration-300 ${
-                  isMenuOpen ? "opacity-0" : ""
-                }`}
-              ></span>
-              <span
-                className={`w-6 h-0.5 bg-white transition-all duration-300 ${
-                  isMenuOpen ? "-rotate-45 -translate-y-1.5" : ""
-                }`}
-              ></span>
-            </button>
-          </SheetTrigger>
-          <SheetContent
-            side="bottom"
-            className="bg-[#101010]/90 backdrop-blur-xl border-t border-[#333] rounded-t-3xl sm:h-[65vh] h-[90vh] sm:max-h-[520px] max-h-[95vh] shadow-2xl animate-fadeIn flex flex-col px-0 pt-2 pb-6 overflow-y-auto"
-          >
-            {/* Drag handle */}
-            <div className="flex justify-center items-center mb-2">
-              <div className="w-12 h-1.5 rounded-full bg-[#333]/60" />
-            </div>
-            <SheetHeader className="text-left px-6 pb-0">
-              <div className="flex items-center justify-between">
-                <SheetTitle className="text-white text-xl font-bold">
-                  Menu
-                </SheetTitle>
-              </div>
-            </SheetHeader>
-            {/* Mobile Navigation Links */}
-            <div className="flex flex-col gap-2 font-medium text-[#b0b0b0] mt-6 px-6 flex-grow">
+              {link.label}
+            </Link>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="hidden items-center gap-1 lg:flex">
+            {socialLinks.map((social) => (
               <a
-                href="#"
-                className="hover:text-white transition-colors duration-200 py-3 rounded-lg px-2 text-lg font-semibold focus:bg-[#222]/40 focus:outline-none"
-                onClick={closeMenu}
+                key={social.name}
+                href={social.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={social.name}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
               >
-                Home
+                {getIcon(social.icon, { className: "h-4 w-4" })}
               </a>
-              <a
-                href="#projects"
-                className="hover:text-white transition-colors duration-200 py-3 rounded-lg px-2 text-lg font-semibold focus:bg-[#222]/40 focus:outline-none"
-                onClick={closeMenu}
+            ))}
+          </div>
+
+          <ThemeToggle />
+
+          {/* Mobile menu */}
+          <div className="md:hidden">
+            <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+              <SheetTrigger asChild>
+                <button
+                  className="flex flex-col gap-1.5 p-2"
+                  aria-label="Toggle menu"
+                  aria-expanded={isMenuOpen}
+                >
+                  <span
+                    className={`h-px w-5 bg-foreground transition-all duration-300 ${
+                      isMenuOpen ? "translate-y-[3.5px] rotate-45" : ""
+                    }`}
+                  />
+                  <span
+                    className={`h-px w-5 bg-foreground transition-all duration-300 ${
+                      isMenuOpen ? "-translate-y-[3.5px] -rotate-45" : ""
+                    }`}
+                  />
+                </button>
+              </SheetTrigger>
+              <SheetContent
+                side="bottom"
+                className="flex h-auto flex-col rounded-t-2xl border-t border-border bg-background px-0 pt-3 pb-8"
               >
-                Projects
-              </a>
-              <a
-                href="#skills"
-                className="hover:text-white transition-colors duration-200 py-3 rounded-lg px-2 text-lg font-semibold focus:bg-[#222]/40 focus:outline-none"
-                onClick={closeMenu}
-              >
-                Skills
-              </a>
-              <a
-                href="#contact"
-                className="hover:text-white transition-colors duration-200 py-3 rounded-lg px-2 text-lg font-semibold focus:bg-[#222]/40 focus:outline-none"
-                onClick={closeMenu}
-              >
-                Contact
-              </a>
-            </div>
-            {/* Social Links pinned to bottom */}
-            <div className="flex flex-col items-center w-full mt-0">
-              <div className="w-full border-t border-[#333]/60 my-3" />
-              <p className="text-sm text-[#9ca3af] mb-2 mt-1 text-center">
-                Follow me
-              </p>
-              <div className="flex justify-center gap-6 pt-4">
-                {config.contact.socialLinks.map((social) => (
-                  <a
-                    key={social.name}
-                    href={social.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-muted-foreground hover:text-primary transition-colors duration-200"
-                    aria-label={social.name}
-                  >
-                    {getIcon(social.icon, { className: "h-6 w-6" })}
-                  </a>
-                ))}
-              </div>
-            </div>
-          </SheetContent>
-        </Sheet>
+                <div className="mb-2 flex items-center justify-center">
+                  <div className="h-1 w-10 rounded-full bg-border" />
+                </div>
+                <SheetHeader className="px-6 pb-0 text-left">
+                  <SheetTitle className="font-display text-base font-semibold">
+                    Menu
+                  </SheetTitle>
+                </SheetHeader>
+                <div className="mt-4 flex flex-col px-6">
+                  {navLinks.map((link) => (
+                    <Link
+                      key={link.label}
+                      href={link.href}
+                      onClick={closeMenu}
+                      className="border-b border-border py-4 text-lg text-foreground transition-colors last:border-b-0 hover:text-primary"
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                </div>
+                <div className="mt-6 flex justify-center gap-4 px-6">
+                  {socialLinks.map((social) => (
+                    <a
+                      key={social.name}
+                      href={social.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={social.name}
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                    >
+                      {getIcon(social.icon, { className: "h-5 w-5" })}
+                    </a>
+                  ))}
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+        </div>
       </div>
     </nav>
   );

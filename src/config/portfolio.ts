@@ -52,9 +52,9 @@ export const portfolioConfig: PortfolioConfig = {
   hero: {
     name: "Aman",
     title: "Software Engineer",
-    subtitle: "I'm Aman, a..",
+    subtitle: "React Native · Open Source",
     description:
-      "ReactNative Specialist Shaping High-Impact Projects. Open-Source Contributor with Proven Reach.",
+      "I build seamless mobile and web applications with React Native, Expo, and TypeScript — and contribute to open source along the way.",
     image:
       "https://pbs.twimg.com/profile_images/1905805359064723456/pJ1-dOHi_400x400.jpg",
   },
@@ -146,9 +146,9 @@ export const portfolioConfig: PortfolioConfig = {
         icon: "linkedin",
       },
       {
-        name: "Twitter",
-        url: "https://twitter.com/amang9446",
-        icon: "twitter",
+        name: "X",
+        url: "https://x.com/amang9446",
+        icon: "x",
       },
     ],
   },
