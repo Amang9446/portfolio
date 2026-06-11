@@ -33,6 +33,7 @@ create table if not exists public.projects (
   docs_url text,
   tags text[] not null default '{}',
   sort_order integer not null default 0,
+  visible boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

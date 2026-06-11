@@ -10,26 +10,34 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { portfolioConfig, type SocialLink } from "@/config/portfolio";
+import type { SectionVisibility } from "@/lib/settings";
 import { getIcon } from "../ui/icons";
 import ThemeToggle from "../ui/theme-toggle";
 
-const navLinks = [
-  { href: "/", label: "Home" },
-  { href: "/#projects", label: "Projects" },
-  { href: "/#skills", label: "Skills" },
-  { href: "/blog", label: "Blog" },
-  { href: "/#contact", label: "Contact" },
-];
+// `section` ties each link to its admin visibility toggle (Home always shows)
+const allNavLinks = [
+  { href: "/", label: "Home", section: null },
+  { href: "/#projects", label: "Projects", section: "projects" },
+  { href: "/#skills", label: "Skills", section: "skills" },
+  { href: "/blog", label: "Blog", section: "blog" },
+  { href: "/#contact", label: "Contact", section: "contact" },
+] as const;
 
 interface NavBarProps {
   socialLinks?: SocialLink[];
+  sections?: SectionVisibility;
 }
 
 export default function NavBar({
   socialLinks = portfolioConfig.contact.socialLinks,
+  sections,
 }: NavBarProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const closeMenu = () => setIsMenuOpen(false);
+
+  const navLinks = allNavLinks.filter(
+    (link) => !link.section || !sections || sections[link.section],
+  );
 
   return (
     <nav className="sticky top-0 z-30 w-full border-b border-border bg-background/85 backdrop-blur-sm">

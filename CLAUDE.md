@@ -21,8 +21,8 @@ a Supabase-backed admin dashboard that manages ALL site content.
 All public content is DB-first with static fallback (`src/config/portfolio.ts`)
 so the site renders without Supabase configured.
 
-- `src/lib/settings.ts` — hero/contact/SEO-metadata/skills (`site_settings` JSON-per-key + `skills` table)
-- `src/lib/projects.ts` — projects (falls back to config when table empty)
+- `src/lib/settings.ts` — hero/contact/SEO-metadata/skills/section-visibility (`site_settings` JSON-per-key + `skills` table; `sections` key hides homepage sections + blog)
+- `src/lib/projects.ts` — projects (falls back to config when table empty; rows with `visible=false` are filtered from the public list, but an all-hidden table does NOT re-trigger the static fallback)
 - `src/lib/posts.ts` — blog posts; `meta` jsonb holds per-post SEO overrides {title, description, keywords, ogImage}
 - `src/lib/supabase/{client,server,public,config}.ts` — browser/server/public clients; `isSupabaseConfigured()` gates all DB calls
 - PERF-CRITICAL: public-page reads MUST use `createPublicClient()` (cookie-free). The cookie-bound server client calls `cookies()`, which silently opts the route out of static rendering/ISR and makes every visit hit Supabase live. Server client is for admin/auth paths only.

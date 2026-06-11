@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getAllDbProjects } from "@/lib/projects";
+import { toggleProjectVisibility } from "../../actions";
 
 export default async function AdminProjectsPage() {
   const projects = await getAllDbProjects();
@@ -24,23 +25,48 @@ export default async function AdminProjectsPage() {
       ) : (
         <div className="mt-8 flex flex-col">
           {projects.map((project) => (
-            <Link
+            <div
               key={project.id}
-              href={`/admin/projects/${project.id}`}
-              className="group flex items-center justify-between gap-4 border-b border-border py-4 first:border-t"
+              className="flex items-center justify-between gap-4 border-b border-border py-4 first:border-t"
             >
-              <div className="min-w-0">
+              <Link
+                href={`/admin/projects/${project.id}`}
+                className={`group min-w-0 flex-1 ${project.visible ? "" : "opacity-50"}`}
+              >
                 <p className="truncate font-medium transition-colors group-hover:text-primary">
                   {project.title}
                 </p>
                 <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
                   {project.tags.join(" · ")}
                 </p>
-              </div>
+              </Link>
               <span className="shrink-0 font-mono text-xs text-muted-foreground">
                 #{project.sort_order}
               </span>
-            </Link>
+              <form action={toggleProjectVisibility} className="shrink-0">
+                <input type="hidden" name="id" value={project.id} />
+                <input
+                  type="hidden"
+                  name="visible"
+                  value={String(!project.visible)}
+                />
+                <button
+                  type="submit"
+                  title={
+                    project.visible
+                      ? "Shown on the homepage — click to hide"
+                      : "Hidden from the homepage — click to show"
+                  }
+                  className={`rounded-md border px-2.5 py-1 font-mono text-xs transition-colors ${
+                    project.visible
+                      ? "border-primary/40 text-primary hover:bg-primary/5"
+                      : "border-border text-muted-foreground hover:bg-secondary"
+                  }`}
+                >
+                  {project.visible ? "Visible" : "Hidden"}
+                </button>
+              </form>
+            </div>
           ))}
         </div>
       )}

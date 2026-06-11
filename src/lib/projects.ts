@@ -13,6 +13,7 @@ export interface DbProject {
   docs_url: string | null;
   tags: string[];
   sort_order: number;
+  visible: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -43,8 +44,12 @@ export async function getProjects(): Promise<Project[]> {
     console.error("Failed to load projects:", error.message);
     return portfolioConfig.projects;
   }
+  // Fall back only when the table is truly empty — if rows exist but are all
+  // hidden, an empty list is the intended result, not the static config.
   if (!data || data.length === 0) return portfolioConfig.projects;
-  return (data as unknown as DbProject[]).map(toProject);
+  return (data as unknown as DbProject[])
+    .filter((row) => row.visible)
+    .map(toProject);
 }
 
 export async function getAllDbProjects(): Promise<DbProject[]> {

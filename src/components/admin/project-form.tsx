@@ -127,6 +127,19 @@ export default function ProjectForm({ project, error }: ProjectFormProps) {
         />
       </label>
 
+      <label
+        className="mt-5 flex w-fit cursor-pointer items-center gap-2.5 text-sm"
+        title="Untick to hide this project from the homepage without deleting it"
+      >
+        <input
+          name="visible"
+          type="checkbox"
+          defaultChecked={project?.visible ?? true}
+          className="h-4 w-4 accent-primary"
+        />
+        <span>Visible on the homepage</span>
+      </label>
+
       <div className="mt-6 flex items-center justify-end gap-3">
         {project && (
           <button

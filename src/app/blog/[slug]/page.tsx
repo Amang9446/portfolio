@@ -66,11 +66,11 @@ export default async function BlogPostPage({ params }: PageProps) {
     getPostBySlug(slug),
     getSiteContent(),
   ]);
-  if (!post) notFound();
+  if (!post || !site.sections.blog) notFound();
 
   return (
     <main className="flex min-h-screen flex-col bg-background text-foreground">
-      <NavBar socialLinks={site.contact.socialLinks} />
+      <NavBar socialLinks={site.contact.socialLinks} sections={site.sections} />
       <article className="mx-auto w-full max-w-3xl flex-1 px-6 py-20 md:py-28">
         <Link
           href="/blog"

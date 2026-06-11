@@ -14,11 +14,11 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <NavBar socialLinks={site.contact.socialLinks} />
+      <NavBar socialLinks={site.contact.socialLinks} sections={site.sections} />
       <Hero config={site.hero} />
-      <Projects projects={projects} />
-      <Skills skills={site.skills} />
-      <Contact config={site.contact} />
+      {site.sections.projects && <Projects projects={projects} />}
+      {site.sections.skills && <Skills skills={site.skills} />}
+      {site.sections.contact && <Contact config={site.contact} />}
       <Footer author={site.metadata.author} />
     </main>
   );

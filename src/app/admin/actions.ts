@@ -132,6 +132,31 @@ export async function savePost(formData: FormData) {
   redirect("/admin/posts");
 }
 
+// Quick publish/unpublish from the posts list, without opening the editor
+export async function togglePostPublished(formData: FormData) {
+  const supabase = await requireUser();
+  const id = String(formData.get("id") ?? "");
+  const publish = formData.get("publish") === "true";
+  if (id) {
+    const existing = await supabase
+      .from("posts")
+      .select("published_at")
+      .eq("id", id)
+      .maybeSingle();
+    await supabase
+      .from("posts")
+      .update({
+        published: publish,
+        published_at: publish
+          ? (existing.data?.published_at ?? new Date().toISOString())
+          : null,
+      })
+      .eq("id", id);
+  }
+  revalidatePublic();
+  revalidatePath("/admin/posts");
+}
+
 export async function deletePost(formData: FormData) {
   const supabase = await requireUser();
   const id = String(formData.get("id") ?? "");
@@ -194,6 +219,15 @@ export async function saveMeta(formData: FormData) {
   });
 }
 
+export async function saveSections(formData: FormData) {
+  await upsertSetting("sections", {
+    projects: formData.get("projects") === "on",
+    skills: formData.get("skills") === "on",
+    blog: formData.get("blog") === "on",
+    contact: formData.get("contact") === "on",
+  });
+}
+
 export async function saveSkills(formData: FormData) {
   const supabase = await requireUser();
 
@@ -243,6 +277,7 @@ export async function saveProject(formData: FormData) {
       .map((t) => t.trim())
       .filter(Boolean),
     sort_order: Number(formData.get("sort_order") ?? 0) || 0,
+    visible: formData.get("visible") === "on",
   };
 
   if (!project.title) {
@@ -263,6 +298,18 @@ export async function saveProject(formData: FormData) {
 
   revalidatePublic();
   redirect("/admin/projects");
+}
+
+// Quick show/hide from the projects list, without opening the editor
+export async function toggleProjectVisibility(formData: FormData) {
+  const supabase = await requireUser();
+  const id = String(formData.get("id") ?? "");
+  const visible = formData.get("visible") === "true";
+  if (id) {
+    await supabase.from("projects").update({ visible }).eq("id", id);
+  }
+  revalidatePublic();
+  revalidatePath("/admin/projects");
 }
 
 export async function deleteProject(formData: FormData) {

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import NavBar from "@/components/layout/nav-bar";
 import Footer from "@/components/layout/Footer";
 import { getPublishedPosts } from "@/lib/posts";
@@ -26,10 +27,11 @@ export default async function BlogPage() {
     getPublishedPosts(),
     getSiteContent(),
   ]);
+  if (!site.sections.blog) notFound();
 
   return (
     <main className="flex min-h-screen flex-col bg-background text-foreground">
-      <NavBar socialLinks={site.contact.socialLinks} />
+      <NavBar socialLinks={site.contact.socialLinks} sections={site.sections} />
       <div className="mx-auto w-full max-w-5xl flex-1 px-6 py-20 md:py-28">
         <p className="font-mono text-xs uppercase tracking-[0.2em] text-primary">
           Writing

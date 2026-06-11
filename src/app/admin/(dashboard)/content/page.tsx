@@ -4,6 +4,7 @@ import {
   saveContact,
   saveMeta,
   saveSkills,
+  saveSections,
 } from "../../actions";
 
 const inputClass =
@@ -22,7 +23,14 @@ export default async function SiteContentPage({ searchParams }: PageProps) {
     searchParams,
     getSiteContent(),
   ]);
-  const { hero, contact, metadata, skills } = content;
+  const { hero, contact, metadata, skills, sections } = content;
+
+  const sectionToggles = [
+    { name: "projects", label: "Projects", checked: sections.projects },
+    { name: "skills", label: "Skills", checked: sections.skills },
+    { name: "blog", label: "Blog", checked: sections.blog },
+    { name: "contact", label: "Contact", checked: sections.contact },
+  ];
 
   const social = (icon: string) =>
     contact.socialLinks.find((s) => s.icon === icon)?.url ?? "";
@@ -51,8 +59,38 @@ export default async function SiteContentPage({ searchParams }: PageProps) {
         </p>
       )}
 
-      {/* Hero */}
+      {/* Section visibility */}
       <section className="mt-10">
+        <h2 className="font-mono text-xs uppercase tracking-[0.2em] text-primary">
+          Sections
+        </h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Untick a section to hide it from the site. Hiding Blog also removes
+          the page and its nav link.
+        </p>
+        <form action={saveSections} className="mt-4 flex flex-col gap-4">
+          <div className="flex flex-wrap gap-x-8 gap-y-3">
+            {sectionToggles.map((s) => (
+              <label
+                key={s.name}
+                className="flex cursor-pointer items-center gap-2.5 text-sm"
+              >
+                <input
+                  name={s.name}
+                  type="checkbox"
+                  defaultChecked={s.checked}
+                  className="h-4 w-4 accent-primary"
+                />
+                <span>{s.label}</span>
+              </label>
+            ))}
+          </div>
+          <button type="submit" className={saveButtonClass}>Save sections</button>
+        </form>
+      </section>
+
+      {/* Hero */}
+      <section className="mt-12 border-t border-border pt-10">
         <h2 className="font-mono text-xs uppercase tracking-[0.2em] text-primary">
           Hero
         </h2>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getAllPosts } from "@/lib/posts";
+import { togglePostPublished } from "../../actions";
 
 function formatDate(date: string) {
   return new Date(date).toLocaleDateString("en-US", {
@@ -31,29 +32,45 @@ export default async function AdminPostsPage() {
       ) : (
         <div className="mt-8 flex flex-col">
           {posts.map((post) => (
-            <Link
+            <div
               key={post.id}
-              href={`/admin/posts/${post.id}`}
-              className="group flex items-center justify-between gap-4 border-b border-border py-4 first:border-t"
+              className="flex items-center justify-between gap-4 border-b border-border py-4 first:border-t"
             >
-              <div className="min-w-0">
+              <Link
+                href={`/admin/posts/${post.id}`}
+                className={`group min-w-0 flex-1 ${post.published ? "" : "opacity-50"}`}
+              >
                 <p className="truncate font-medium transition-colors group-hover:text-primary">
                   {post.title}
                 </p>
                 <p className="mt-0.5 font-mono text-xs text-muted-foreground">
                   /{post.slug} · updated {formatDate(post.updated_at)}
                 </p>
-              </div>
-              <span
-                className={`shrink-0 rounded-md border px-2.5 py-1 font-mono text-xs ${
-                  post.published
-                    ? "border-primary/40 text-primary"
-                    : "border-border text-muted-foreground"
-                }`}
-              >
-                {post.published ? "Published" : "Draft"}
-              </span>
-            </Link>
+              </Link>
+              <form action={togglePostPublished} className="shrink-0">
+                <input type="hidden" name="id" value={post.id} />
+                <input
+                  type="hidden"
+                  name="publish"
+                  value={String(!post.published)}
+                />
+                <button
+                  type="submit"
+                  title={
+                    post.published
+                      ? "Live on the blog — click to unpublish"
+                      : "Draft — click to publish"
+                  }
+                  className={`rounded-md border px-2.5 py-1 font-mono text-xs transition-colors ${
+                    post.published
+                      ? "border-primary/40 text-primary hover:bg-primary/5"
+                      : "border-border text-muted-foreground hover:bg-secondary"
+                  }`}
+                >
+                  {post.published ? "Published" : "Draft"}
+                </button>
+              </form>
+            </div>
           ))}
         </div>
       )}

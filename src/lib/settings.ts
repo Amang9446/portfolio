@@ -15,18 +15,36 @@ export interface SiteMetadata {
   keywords: string[];
 }
 
+// Which public sections render. Hiding "blog" removes it from the nav and
+// returns 404 for /blog; the other keys hide homepage sections.
+export interface SectionVisibility {
+  projects: boolean;
+  skills: boolean;
+  blog: boolean;
+  contact: boolean;
+}
+
 export interface SiteContent {
   hero: HeroConfig;
   contact: ContactConfig;
   metadata: SiteMetadata;
   skills: Skill[];
+  sections: SectionVisibility;
 }
+
+const allSectionsVisible: SectionVisibility = {
+  projects: true,
+  skills: true,
+  blog: true,
+  contact: true,
+};
 
 const fallback: SiteContent = {
   hero: portfolioConfig.hero,
   contact: portfolioConfig.contact,
   metadata: portfolioConfig.metadata,
   skills: portfolioConfig.skills,
+  sections: allSectionsVisible,
 };
 
 // All public site content, DB-first with the static config as fallback so
@@ -71,5 +89,6 @@ export const getSiteContent = cache(async (): Promise<SiteContent> => {
     contact: { ...fallback.contact, ...(byKey.get("contact") ?? {}) },
     metadata: { ...fallback.metadata, ...(byKey.get("metadata") ?? {}) },
     skills,
+    sections: { ...allSectionsVisible, ...(byKey.get("sections") ?? {}) },
   };
 });
