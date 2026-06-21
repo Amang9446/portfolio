@@ -43,6 +43,11 @@ const nextConfig = {
         hostname: "nasejsbkkaonqcfkxljf.supabase.co",
         pathname: "/storage/v1/object/public/**",
       },
+      {
+        protocol: "https",
+        hostname: "play-lh.googleusercontent.com",
+        pathname: "/**",
+      },
     ],
   },
 };

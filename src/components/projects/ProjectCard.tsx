@@ -65,7 +65,7 @@ export default function ProjectCard({ project, index }: ProjectCardProps) {
               className="inline-flex items-center gap-1.5 font-medium text-primary transition-opacity hover:opacity-80"
             >
               {getIcon("external-link", { className: "h-3.5 w-3.5" })}
-              Demo
+              Visit
             </a>
           )}
           {project.githubUrl && (
