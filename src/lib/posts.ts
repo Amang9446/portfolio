@@ -15,6 +15,10 @@ export interface Post {
   title: string;
   excerpt: string;
   content: string;
+  cover_image_url: string;
+  cover_image_alt: string;
+  show_on_home: boolean;
+  view_count: number;
   published: boolean;
   published_at: string | null;
   meta: PostMeta;
@@ -22,22 +26,39 @@ export interface Post {
   updated_at: string;
 }
 
-// List page doesn't need post bodies — skip `content` to keep payloads small
-export async function getPublishedPosts(): Promise<Omit<Post, "content">[]> {
+export type PostSummary = Omit<Post, "content">;
+
+const postSummaryColumns =
+  "id, slug, title, excerpt, cover_image_url, cover_image_alt, show_on_home, view_count, published, published_at, meta, created_at, updated_at";
+
+async function loadPublishedPosts(homeOnly: boolean): Promise<PostSummary[]> {
   if (!isSupabaseConfigured()) return [];
   const supabase = createPublicClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("posts")
-    .select(
-      "id, slug, title, excerpt, published, published_at, meta, created_at, updated_at",
-    )
+    .select(postSummaryColumns)
     .eq("published", true)
     .order("published_at", { ascending: false });
+
+  if (homeOnly) {
+    query = query.eq("show_on_home", true);
+  }
+
+  const { data, error } = await query;
   if (error) {
     console.error("Failed to load posts:", error.message);
     return [];
   }
-  return (data as unknown as Omit<Post, "content">[]) ?? [];
+  return (data as unknown as PostSummary[]) ?? [];
+}
+
+// List pages do not need article bodies, so both queries skip `content`.
+export function getPublishedPosts(): Promise<PostSummary[]> {
+  return loadPublishedPosts(false);
+}
+
+export function getHomePosts(): Promise<PostSummary[]> {
+  return loadPublishedPosts(true);
 }
 
 export async function getPostBySlug(slug: string): Promise<Post | null> {

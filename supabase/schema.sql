@@ -12,6 +12,11 @@ create table if not exists public.posts (
   title text not null,
   excerpt text not null default '',
   content text not null default '',
+  cover_image_url text not null default '',
+  cover_image_alt text not null default '',
+  show_on_home boolean not null default false,
+  view_count bigint not null default 0
+    constraint posts_view_count_nonnegative check (view_count >= 0),
   published boolean not null default false,
   published_at timestamptz,
   -- Per-post SEO overrides: {title, description, keywords, ogImage}
@@ -19,6 +24,31 @@ create table if not exists public.posts (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Keep existing installations in sync when this bootstrap schema is rerun.
+alter table public.posts
+  add column if not exists cover_image_url text not null default '',
+  add column if not exists cover_image_alt text not null default '',
+  add column if not exists show_on_home boolean not null default false,
+  add column if not exists view_count bigint not null default 0;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'posts_view_count_nonnegative'
+      and conrelid = 'public.posts'::regclass
+  ) then
+    alter table public.posts
+      add constraint posts_view_count_nonnegative
+      check (view_count >= 0);
+  end if;
+end $$;
+
+create index if not exists posts_home_published_at_idx
+  on public.posts (published_at desc)
+  where published = true and show_on_home = true;
 
 -- ---------------------------------------------------------------------------
 -- Projects
@@ -52,10 +82,31 @@ begin
 end;
 $$;
 
+-- View increments are analytics, not editorial changes, so they must not
+-- rewrite the post's updated_at timestamp.
+create or replace function public.set_post_updated_at()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+  if (pg_catalog.to_jsonb(new) - 'view_count')
+     is distinct from
+     (pg_catalog.to_jsonb(old) - 'view_count') then
+    new.updated_at = pg_catalog.now();
+  end if;
+  return new;
+end;
+$$;
+
+revoke all on function public.set_post_updated_at()
+  from public, anon, authenticated, service_role;
+
 drop trigger if exists posts_updated_at on public.posts;
 create trigger posts_updated_at
   before update on public.posts
-  for each row execute function public.set_updated_at();
+  for each row execute function public.set_post_updated_at();
 
 drop trigger if exists projects_updated_at on public.projects;
 create trigger projects_updated_at
@@ -90,6 +141,26 @@ $$;
 
 revoke all on function public.is_admin() from public;
 grant execute on function public.is_admin() to anon, authenticated;
+
+-- Public, deliberately narrow RPC used by the article page. It can only
+-- increment the counter of an already-published post and returns that count.
+create or replace function public.record_post_view(target_post_id uuid)
+returns bigint
+language sql
+volatile
+security definer
+set search_path = ''
+as $$
+  update public.posts
+  set view_count = view_count + 1
+  where id = target_post_id
+    and published = true
+  returning view_count;
+$$;
+
+revoke all on function public.record_post_view(uuid)
+  from public, anon, authenticated, service_role;
+grant execute on function public.record_post_view(uuid) to anon, authenticated;
 
 -- Replace with your admin login email(s):
 -- insert into public.admin_emails (email) values ('you@example.com');

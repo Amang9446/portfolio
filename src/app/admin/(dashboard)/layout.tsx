@@ -1,9 +1,11 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { isAdminEmail } from "@/lib/admin";
 import { signOut } from "../actions";
+import AdminFeedback from "@/components/admin/admin-feedback";
 
 export const metadata = {
   title: "Admin | Aman",
@@ -25,6 +27,9 @@ export default async function AdminLayout({
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <Suspense fallback={null}>
+        <AdminFeedback />
+      </Suspense>
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-7 text-sm">

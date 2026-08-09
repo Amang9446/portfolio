@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getAllPosts } from "@/lib/posts";
-import { togglePostPublished } from "../../actions";
+import { togglePostOnHome, togglePostPublished } from "../../actions";
 
 function formatDate(date: string) {
   return new Date(date).toLocaleDateString("en-US", {
@@ -44,32 +44,59 @@ export default async function AdminPostsPage() {
                   {post.title}
                 </p>
                 <p className="mt-0.5 font-mono text-xs text-muted-foreground">
-                  /{post.slug} · updated {formatDate(post.updated_at)}
+                  /{post.slug} · {post.view_count.toLocaleString("en-US")} views
+                  {" · updated "}
+                  {formatDate(post.updated_at)}
                 </p>
               </Link>
-              <form action={togglePostPublished} className="shrink-0">
-                <input type="hidden" name="id" value={post.id} />
-                <input
-                  type="hidden"
-                  name="publish"
-                  value={String(!post.published)}
-                />
-                <button
-                  type="submit"
-                  title={
-                    post.published
-                      ? "Live on the blog — click to unpublish"
-                      : "Draft — click to publish"
-                  }
-                  className={`rounded-md border px-2.5 py-1 font-mono text-xs transition-colors ${
-                    post.published
-                      ? "border-primary/40 text-primary hover:bg-primary/5"
-                      : "border-border text-muted-foreground hover:bg-secondary"
-                  }`}
-                >
-                  {post.published ? "Published" : "Draft"}
-                </button>
-              </form>
+              <div className="flex shrink-0 items-center gap-2">
+                <form action={togglePostOnHome}>
+                  <input type="hidden" name="id" value={post.id} />
+                  <input
+                    type="hidden"
+                    name="show_on_home"
+                    value={String(!post.show_on_home)}
+                  />
+                  <button
+                    type="submit"
+                    title={
+                      post.show_on_home
+                        ? "Selected for the home page — click to remove"
+                        : "Click to show this post on the home page"
+                    }
+                    className={`rounded-md border px-2.5 py-1 font-mono text-xs transition-colors ${
+                      post.show_on_home
+                        ? "border-primary/40 text-primary hover:bg-primary/5"
+                        : "border-border text-muted-foreground hover:bg-secondary"
+                    }`}
+                  >
+                    {post.show_on_home ? "On home" : "Home off"}
+                  </button>
+                </form>
+                <form action={togglePostPublished}>
+                  <input type="hidden" name="id" value={post.id} />
+                  <input
+                    type="hidden"
+                    name="publish"
+                    value={String(!post.published)}
+                  />
+                  <button
+                    type="submit"
+                    title={
+                      post.published
+                        ? "Live on the blog — click to unpublish"
+                        : "Draft — click to publish"
+                    }
+                    className={`rounded-md border px-2.5 py-1 font-mono text-xs transition-colors ${
+                      post.published
+                        ? "border-primary/40 text-primary hover:bg-primary/5"
+                        : "border-border text-muted-foreground hover:bg-secondary"
+                    }`}
+                  >
+                    {post.published ? "Published" : "Draft"}
+                  </button>
+                </form>
+              </div>
             </div>
           ))}
         </div>

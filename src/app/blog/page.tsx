@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import NavBar from "@/components/layout/nav-bar";
 import Footer from "@/components/layout/Footer";
+import PostGrid from "@/components/posts/post-grid";
 import { getPublishedPosts } from "@/lib/posts";
 import { getSiteContent } from "@/lib/settings";
 
@@ -12,15 +12,6 @@ export const metadata: Metadata = {
   title: "Blog | Aman",
   description: "Notes on React Native, web development, and open source.",
 };
-
-function formatDate(date: string | null) {
-  if (!date) return "";
-  return new Date(date).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
 
 export default async function BlogPage() {
   const [posts, site] = await Promise.all([
@@ -53,31 +44,7 @@ export default async function BlogPage() {
             .
           </p>
         ) : (
-          <div className="mt-14 flex flex-col">
-            {posts.map((post) => (
-              <Link
-                key={post.id}
-                href={`/blog/${post.slug}`}
-                className="group border-b border-border py-8 first:border-t"
-              >
-                <div className="flex flex-col gap-2 md:flex-row md:items-baseline md:gap-10">
-                  <time className="shrink-0 font-mono text-xs text-muted-foreground md:w-28">
-                    {formatDate(post.published_at)}
-                  </time>
-                  <div>
-                    <h2 className="text-xl font-semibold transition-colors group-hover:text-primary">
-                      {post.title}
-                    </h2>
-                    {post.excerpt && (
-                      <p className="mt-2 max-w-[60ch] leading-relaxed text-muted-foreground">
-                        {post.excerpt}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
+          <PostGrid posts={posts} className="mt-16 md:mt-20" />
         )}
       </div>
       <Footer author={site.metadata.author} />

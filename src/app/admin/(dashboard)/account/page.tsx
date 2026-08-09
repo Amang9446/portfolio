@@ -1,11 +1,11 @@
 import { changePassword } from "../../actions";
 
 interface PageProps {
-  searchParams: Promise<{ error?: string; success?: string }>;
+  searchParams: Promise<{ error?: string }>;
 }
 
 export default async function AccountPage({ searchParams }: PageProps) {
-  const { error, success } = await searchParams;
+  const { error } = await searchParams;
 
   return (
     <div className="max-w-sm">
@@ -16,12 +16,6 @@ export default async function AccountPage({ searchParams }: PageProps) {
           {error}
         </p>
       )}
-      {success && (
-        <p className="mt-6 rounded-md border border-primary/40 bg-primary/5 p-3 text-sm text-primary">
-          Password updated.
-        </p>
-      )}
-
       <form action={changePassword} className="mt-8 flex flex-col gap-4">
         <label className="flex flex-col gap-1.5 text-sm">
           <span className="text-muted-foreground">New password</span>

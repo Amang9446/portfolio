@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { toast } from "sonner";
 import {
   Bold,
   Italic,
@@ -19,6 +20,7 @@ import {
 } from "lucide-react";
 import { savePost, deletePost } from "@/app/admin/actions";
 import { createClient } from "@/lib/supabase/client";
+import PostCover from "@/components/posts/post-cover";
 import type { Post } from "@/lib/posts";
 
 interface PendingImage {
@@ -51,14 +53,25 @@ export default function PostForm({ post, error }: PostFormProps) {
   const [slug, setSlug] = useState(post?.slug ?? "");
   const [slugTouched, setSlugTouched] = useState(Boolean(post));
   const [content, setContent] = useState(post?.content ?? "");
+  const [coverImageUrl, setCoverImageUrl] = useState(
+    post?.cover_image_url ?? "",
+  );
+  const [coverImageAlt, setCoverImageAlt] = useState(
+    post?.cover_image_alt ?? "",
+  );
+  const [coverPreviewUrl, setCoverPreviewUrl] = useState(
+    post?.cover_image_url ?? "",
+  );
   const [mode, setMode] = useState<Mode>("write");
   const [draftRestored, setDraftRestored] = useState(false);
   const [saving, setSaving] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const coverFileInputRef = useRef<HTMLInputElement>(null);
   // Images picked in the editor but not yet uploaded. They live only in the
   // browser until Save — referenced from markdown as local:<id>.
   const pendingImages = useRef<Map<string, PendingImage>>(new Map());
+  const pendingCoverImage = useRef<PendingImage | null>(null);
 
   const draftKey = `post-draft-${post?.id ?? "new"}`;
 
@@ -176,7 +189,7 @@ export default function PostForm({ post, error }: PostFormProps) {
     e.target.value = "";
     if (!file) return;
     if (file.size > 50 * 1024 * 1024) {
-      alert("Max file size is 50 MB (Supabase free tier limit).");
+      toast.error("Max file size is 50 MB (Supabase free tier limit).");
       return;
     }
     const id = crypto.randomUUID();
@@ -186,6 +199,43 @@ export default function PostForm({ post, error }: PostFormProps) {
     });
     const alt = file.name.replace(/\.[^.]+$/, "");
     insertBlock(`![${alt}](local:${id})`);
+  };
+
+  const clearPendingCoverImage = () => {
+    if (pendingCoverImage.current) {
+      URL.revokeObjectURL(pendingCoverImage.current.objectUrl);
+      pendingCoverImage.current = null;
+    }
+  };
+
+  const onCoverImagePicked = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error("Max file size is 50 MB (Supabase free tier limit).");
+      return;
+    }
+
+    clearPendingCoverImage();
+    const objectUrl = URL.createObjectURL(file);
+    pendingCoverImage.current = { file, objectUrl };
+    setCoverPreviewUrl(objectUrl);
+    if (!coverImageAlt) {
+      setCoverImageAlt(file.name.replace(/\.[^.]+$/, ""));
+    }
+  };
+
+  const setRemoteCoverImage = (url: string) => {
+    clearPendingCoverImage();
+    setCoverImageUrl(url);
+    setCoverPreviewUrl(url);
+  };
+
+  const removeCoverImage = () => {
+    clearPendingCoverImage();
+    setCoverImageUrl("");
+    setCoverPreviewUrl("");
   };
 
   // Lets the preview render not-yet-uploaded images from browser memory
@@ -221,6 +271,25 @@ export default function PostForm({ post, error }: PostFormProps) {
     return result;
   };
 
+  const uploadPendingCoverImage = async () => {
+    const pending = pendingCoverImage.current;
+    if (!pending) return coverImageUrl.trim();
+
+    const { file } = pending;
+    const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
+    const postPath = slugify(slug || title) || "post";
+    const path = `posts/${postPath}/cover-${Date.now()}.${ext}`;
+    const supabase = createClient();
+    const { error: uploadError } = await supabase.storage
+      .from("media")
+      .upload(path, file, { contentType: file.type });
+    if (uploadError) {
+      throw new Error(`Banner upload failed: ${uploadError.message}`);
+    }
+    const { data } = supabase.storage.from("media").getPublicUrl(path);
+    return data.publicUrl;
+  };
+
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     const form = e.currentTarget;
     const submitter = (e.nativeEvent as SubmitEvent)
@@ -234,6 +303,7 @@ export default function PostForm({ post, error }: PostFormProps) {
     setSaving(true);
     try {
       const finalContent = await uploadPendingImages(content);
+      const finalCoverImageUrl = await uploadPendingCoverImage();
       // local: refs can survive a page reload in the restored draft, but the
       // files themselves don't — block the save instead of publishing 404s
       if (/\]\(local:[0-9a-f-]+\)/.test(finalContent)) {
@@ -241,14 +311,19 @@ export default function PostForm({ post, error }: PostFormProps) {
           "Some images were lost when the page reloaded. Remove the broken image references (local:…) and re-add the files.",
         );
       }
+      clearPendingCoverImage();
       setContent(finalContent);
+      setCoverImageUrl(finalCoverImageUrl);
+      setCoverPreviewUrl(finalCoverImageUrl);
       const fd = new FormData(form);
       fd.set("content", finalContent);
+      fd.set("cover_image_url", finalCoverImageUrl);
+      fd.set("cover_image_alt", coverImageAlt.trim());
       clearDraft();
       await savePost(fd); // redirects on success
     } catch (err) {
       setSaving(false);
-      alert(err instanceof Error ? err.message : "Save failed");
+      toast.error(err instanceof Error ? err.message : "Save failed");
     }
   };
 
@@ -358,6 +433,15 @@ export default function PostForm({ post, error }: PostFormProps) {
         aria-hidden="true"
         tabIndex={-1}
       />
+      <input
+        ref={coverFileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={onCoverImagePicked}
+        className="hidden"
+        aria-hidden="true"
+        tabIndex={-1}
+      />
 
       {error && (
         <p className="mb-6 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
@@ -416,6 +500,82 @@ export default function PostForm({ post, error }: PostFormProps) {
           className={inputClass}
         />
       </label>
+
+      <section className="mt-5 rounded-md border border-border p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-medium text-foreground">
+              Article banner
+            </h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Used on the home page, blog cards, article page, and social
+              previews. A 1600 × 900 image works well.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => coverFileInputRef.current?.click()}
+              className="rounded-md border border-border px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-secondary"
+            >
+              Upload image
+            </button>
+            {coverPreviewUrl && (
+              <button
+                type="button"
+                onClick={removeCoverImage}
+                className="rounded-md border border-destructive/40 px-3 py-1.5 text-xs text-destructive transition-colors hover:bg-destructive/5"
+              >
+                Remove
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Same component the public site renders, so the preview is truthful
+            — including the plate shown when no banner is set. */}
+        <PostCover
+          post={{
+            title: title || "Your article title",
+            cover_image_url: coverPreviewUrl,
+            cover_image_alt: coverImageAlt,
+          }}
+          className="mt-4"
+        />
+        {!coverPreviewUrl && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            No banner set — cards fall back to this plate, and the article page
+            opens straight into the text.
+          </p>
+        )}
+
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <label className="flex flex-col gap-1.5 text-sm">
+            <span className="text-muted-foreground">Image URL</span>
+            <input
+              name="cover_image_url"
+              type="url"
+              value={coverImageUrl}
+              onChange={(e) => setRemoteCoverImage(e.target.value)}
+              placeholder="https://…"
+              className={`${inputClass} font-mono`}
+            />
+          </label>
+          <label
+            className="flex flex-col gap-1.5 text-sm"
+            title="Describe the image for screen readers. Empty = article title"
+          >
+            <span className="text-muted-foreground">Alternative text</span>
+            <input
+              name="cover_image_alt"
+              value={coverImageAlt}
+              onChange={(e) => setCoverImageAlt(e.target.value)}
+              placeholder={title || "Defaults to article title"}
+              className={inputClass}
+            />
+          </label>
+        </div>
+      </section>
 
       <div className="mt-6">
         {/* Toolbar */}
@@ -546,13 +706,14 @@ export default function PostForm({ post, error }: PostFormProps) {
           </label>
           <label
             className="flex flex-col gap-1.5 text-sm"
-            title="Image for link previews when sharing on social. Empty = your profile photo"
+            title="Optional override for link previews when sharing on social. Empty = article banner"
           >
             <span className="text-muted-foreground">Social share image URL</span>
             <input
               name="meta_og_image"
               type="url"
               defaultValue={post?.meta?.ogImage ?? ""}
+              placeholder="Defaults to article banner"
               className={`${inputClass} font-mono`}
             />
           </label>
@@ -560,18 +721,32 @@ export default function PostForm({ post, error }: PostFormProps) {
       </details>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
-        <label
-          className="flex items-center gap-2.5 text-sm"
-          title="Checked: post is live on /blog. Unchecked: draft, visible only here"
-        >
-          <input
-            type="checkbox"
-            name="published"
-            defaultChecked={post?.published ?? false}
-            className="h-4 w-4 accent-[var(--primary)]"
-          />
-          <span>Published</span>
-        </label>
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+          <label
+            className="flex items-center gap-2.5 text-sm"
+            title="Checked: post is live on /blog. Unchecked: draft, visible only here"
+          >
+            <input
+              type="checkbox"
+              name="published"
+              defaultChecked={post?.published ?? false}
+              className="h-4 w-4 accent-[var(--primary)]"
+            />
+            <span>Published</span>
+          </label>
+          <label
+            className="flex items-center gap-2.5 text-sm"
+            title="Show this post in the Writing section on the home page once it is published"
+          >
+            <input
+              type="checkbox"
+              name="show_on_home"
+              defaultChecked={post?.show_on_home ?? false}
+              className="h-4 w-4 accent-[var(--primary)]"
+            />
+            <span>Show on home</span>
+          </label>
+        </div>
 
         <div className="flex items-center gap-3">
           {post && (

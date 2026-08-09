@@ -77,7 +77,7 @@ export default function RootLayout({
     >
       <body suppressHydrationWarning className="antialiased">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <Toaster />
+          <Toaster position="top-right" richColors closeButton />
           <SpeedInsights />
           {children}
         </ThemeProvider>

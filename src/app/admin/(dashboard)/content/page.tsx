@@ -15,11 +15,11 @@ const saveButtonClass =
   "self-start rounded-md bg-primary px-5 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90";
 
 interface PageProps {
-  searchParams: Promise<{ error?: string; success?: string }>;
+  searchParams: Promise<{ error?: string }>;
 }
 
 export default async function SiteContentPage({ searchParams }: PageProps) {
-  const [{ error, success }, content] = await Promise.all([
+  const [{ error }, content] = await Promise.all([
     searchParams,
     getSiteContent(),
   ]);
@@ -53,12 +53,6 @@ export default async function SiteContentPage({ searchParams }: PageProps) {
           {error}
         </p>
       )}
-      {success && (
-        <p className="mt-6 rounded-md border border-primary/40 bg-primary/5 p-3 text-sm text-primary">
-          Saved.
-        </p>
-      )}
-
       {/* Section visibility */}
       <section className="mt-10">
         <h2 className="font-mono text-xs uppercase tracking-[0.2em] text-primary">

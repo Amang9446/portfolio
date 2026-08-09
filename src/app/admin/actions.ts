@@ -4,6 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
+import {
+  adminErrorUrl,
+  adminNoticeUrl,
+  type AdminNotice,
+} from "@/lib/admin-feedback";
 
 async function requireUser() {
   const supabase = await createClient();
@@ -50,20 +55,21 @@ export async function changePassword(formData: FormData) {
 
   if (password.length < 12) {
     redirect(
-      `/admin/account?error=${encodeURIComponent("Password must be at least 12 characters")}`,
+      adminErrorUrl(
+        "/admin/account",
+        "Password must be at least 12 characters",
+      ),
     );
   }
   if (password !== confirm) {
-    redirect(
-      `/admin/account?error=${encodeURIComponent("Passwords do not match")}`,
-    );
+    redirect(adminErrorUrl("/admin/account", "Passwords do not match"));
   }
 
   const { error } = await supabase.auth.updateUser({ password });
   if (error) {
-    redirect(`/admin/account?error=${encodeURIComponent(error.message)}`);
+    redirect(adminErrorUrl("/admin/account", error.message));
   }
-  redirect("/admin/account?success=1");
+  redirect(adminNoticeUrl("/admin/account", "password-updated"));
 }
 
 export async function signOut() {
@@ -85,6 +91,9 @@ export async function savePost(formData: FormData) {
     slug: String(formData.get("slug") ?? "").trim(),
     excerpt: String(formData.get("excerpt") ?? "").trim(),
     content: String(formData.get("content") ?? ""),
+    cover_image_url: String(formData.get("cover_image_url") ?? "").trim(),
+    cover_image_alt: String(formData.get("cover_image_alt") ?? "").trim(),
+    show_on_home: formData.get("show_on_home") === "on",
     published,
     meta: {
       title: String(formData.get("meta_title") ?? "").trim(),
@@ -96,7 +105,10 @@ export async function savePost(formData: FormData) {
 
   if (!post.title || !post.slug) {
     redirect(
-      `/admin/posts/${id || "new"}?error=${encodeURIComponent("Title and slug are required")}`,
+      adminErrorUrl(
+        `/admin/posts/${id || "new"}`,
+        "Title and slug are required",
+      ),
     );
   }
 
@@ -107,6 +119,11 @@ export async function savePost(formData: FormData) {
       .select("published_at")
       .eq("id", id)
       .maybeSingle();
+    if (existing.error) {
+      redirect(
+        adminErrorUrl(`/admin/posts/${id}`, existing.error.message),
+      );
+    }
     const published_at = published
       ? (existing.data?.published_at ?? new Date().toISOString())
       : null;
@@ -122,14 +139,14 @@ export async function savePost(formData: FormData) {
   }
 
   if (error) {
-    redirect(
-      `/admin/posts/${id || "new"}?error=${encodeURIComponent(error.message)}`,
-    );
+    redirect(adminErrorUrl(`/admin/posts/${id || "new"}`, error.message));
   }
 
   revalidatePublic();
   revalidatePath(`/blog/${post.slug}`);
-  redirect("/admin/posts");
+  redirect(
+    adminNoticeUrl("/admin/posts", id ? "post-updated" : "post-created"),
+  );
 }
 
 // Quick publish/unpublish from the posts list, without opening the editor
@@ -137,59 +154,112 @@ export async function togglePostPublished(formData: FormData) {
   const supabase = await requireUser();
   const id = String(formData.get("id") ?? "");
   const publish = formData.get("publish") === "true";
-  if (id) {
-    const existing = await supabase
-      .from("posts")
-      .select("published_at")
-      .eq("id", id)
-      .maybeSingle();
-    await supabase
-      .from("posts")
-      .update({
-        published: publish,
-        published_at: publish
-          ? (existing.data?.published_at ?? new Date().toISOString())
-          : null,
-      })
-      .eq("id", id);
+  if (!id) {
+    redirect(adminErrorUrl("/admin/posts", "Missing post ID"));
+  }
+
+  const existing = await supabase
+    .from("posts")
+    .select("published_at")
+    .eq("id", id)
+    .maybeSingle();
+  if (existing.error) {
+    redirect(adminErrorUrl("/admin/posts", existing.error.message));
+  }
+  const { error } = await supabase
+    .from("posts")
+    .update({
+      published: publish,
+      published_at: publish
+        ? (existing.data?.published_at ?? new Date().toISOString())
+        : null,
+    })
+    .eq("id", id);
+  if (error) {
+    redirect(adminErrorUrl("/admin/posts", error.message));
+  }
+
+  revalidatePublic();
+  revalidatePath("/admin/posts");
+  redirect(
+    adminNoticeUrl(
+      "/admin/posts",
+      publish ? "post-published" : "post-unpublished",
+    ),
+  );
+}
+
+// Quick home-page selection from the posts list. Drafts may be selected in
+// advance, but the public query still requires `published = true`.
+export async function togglePostOnHome(formData: FormData) {
+  const supabase = await requireUser();
+  const id = String(formData.get("id") ?? "");
+  const showOnHome = formData.get("show_on_home") === "true";
+  if (!id) {
+    redirect(adminErrorUrl("/admin/posts", "Missing post ID"));
+  }
+  const { error } = await supabase
+    .from("posts")
+    .update({ show_on_home: showOnHome })
+    .eq("id", id);
+  if (error) {
+    redirect(adminErrorUrl("/admin/posts", error.message));
   }
   revalidatePublic();
   revalidatePath("/admin/posts");
+  redirect(
+    adminNoticeUrl(
+      "/admin/posts",
+      showOnHome ? "post-added-home" : "post-removed-home",
+    ),
+  );
 }
 
 export async function deletePost(formData: FormData) {
   const supabase = await requireUser();
   const id = String(formData.get("id") ?? "");
-  if (id) {
-    await supabase.from("posts").delete().eq("id", id);
+  if (!id) {
+    redirect(adminErrorUrl("/admin/posts", "Missing post ID"));
+  }
+  const { error } = await supabase.from("posts").delete().eq("id", id);
+  if (error) {
+    redirect(adminErrorUrl("/admin/posts", error.message));
   }
   revalidatePublic();
-  redirect("/admin/posts");
+  redirect(adminNoticeUrl("/admin/posts", "post-deleted"));
 }
 
 // ---------------------------------------------------------------------------
 // Site content (hero, contact, skills, SEO)
 // ---------------------------------------------------------------------------
-async function upsertSetting(key: string, value: unknown) {
+async function upsertSetting(
+  key: string,
+  value: unknown,
+  notice: AdminNotice,
+) {
   const supabase = await requireUser();
   const { error } = await supabase
     .from("site_settings")
     .upsert({ key, value }, { onConflict: "key" });
   if (error) {
-    redirect(`/admin/content?error=${encodeURIComponent(error.message)}`);
+    redirect(adminErrorUrl("/admin/content", error.message));
   }
   revalidatePublic();
-  redirect("/admin/content?success=1");
+  redirect(adminNoticeUrl("/admin/content", notice));
 }
 
 export async function saveHero(formData: FormData) {
-  await upsertSetting("hero", {
-    name: String(formData.get("name") ?? "").trim(),
-    title: String(formData.get("title") ?? "").trim(),
-    subtitle: String(formData.get("subtitle") ?? "").trim(),
-    description: String(formData.get("description") ?? "").trim(),
-    image: String(formData.get("image") ?? "").trim(),
-  });
+  await upsertSetting(
+    "hero",
+    {
+      name: String(formData.get("name") ?? "").trim(),
+      title: String(formData.get("title") ?? "").trim(),
+      subtitle: String(formData.get("subtitle") ?? "").trim(),
+      description: String(formData.get("description") ?? "").trim(),
+      image: String(formData.get("image") ?? "").trim(),
+    },
+    "hero-saved",
+  );
 }
 
 export async function saveContact(formData: FormData) {
@@ -199,33 +269,45 @@ export async function saveContact(formData: FormData) {
     { name: "X", icon: "x", url: String(formData.get("x") ?? "").trim() },
   ].filter((s) => s.url.length > 0);
 
-  await upsertSetting("contact", {
-    email: String(formData.get("email") ?? "").trim(),
-    availability: String(formData.get("availability") ?? "").trim(),
-    responseTime: String(formData.get("responseTime") ?? "").trim(),
-    socialLinks: socials,
-  });
+  await upsertSetting(
+    "contact",
+    {
+      email: String(formData.get("email") ?? "").trim(),
+      availability: String(formData.get("availability") ?? "").trim(),
+      responseTime: String(formData.get("responseTime") ?? "").trim(),
+      socialLinks: socials,
+    },
+    "contact-saved",
+  );
 }
 
 export async function saveMeta(formData: FormData) {
-  await upsertSetting("metadata", {
-    title: String(formData.get("title") ?? "").trim(),
-    description: String(formData.get("description") ?? "").trim(),
-    author: String(formData.get("author") ?? "").trim(),
-    keywords: String(formData.get("keywords") ?? "")
-      .split(",")
-      .map((k) => k.trim())
-      .filter(Boolean),
-  });
+  await upsertSetting(
+    "metadata",
+    {
+      title: String(formData.get("title") ?? "").trim(),
+      description: String(formData.get("description") ?? "").trim(),
+      author: String(formData.get("author") ?? "").trim(),
+      keywords: String(formData.get("keywords") ?? "")
+        .split(",")
+        .map((k) => k.trim())
+        .filter(Boolean),
+    },
+    "metadata-saved",
+  );
 }
 
 export async function saveSections(formData: FormData) {
-  await upsertSetting("sections", {
-    projects: formData.get("projects") === "on",
-    skills: formData.get("skills") === "on",
-    blog: formData.get("blog") === "on",
-    contact: formData.get("contact") === "on",
-  });
+  await upsertSetting(
+    "sections",
+    {
+      projects: formData.get("projects") === "on",
+      skills: formData.get("skills") === "on",
+      blog: formData.get("blog") === "on",
+      contact: formData.get("contact") === "on",
+    },
+    "sections-saved",
+  );
 }
 
 export async function saveSkills(formData: FormData) {
@@ -248,14 +330,14 @@ export async function saveSkills(formData: FormData) {
   if (!del.error && rows.length > 0) {
     const ins = await supabase.from("skills").insert(rows);
     if (ins.error) {
-      redirect(`/admin/content?error=${encodeURIComponent(ins.error.message)}`);
+      redirect(adminErrorUrl("/admin/content", ins.error.message));
     }
   } else if (del.error) {
-    redirect(`/admin/content?error=${encodeURIComponent(del.error.message)}`);
+    redirect(adminErrorUrl("/admin/content", del.error.message));
   }
 
   revalidatePublic();
-  redirect("/admin/content?success=1");
+  redirect(adminNoticeUrl("/admin/content", "skills-saved"));
 }
 
 // ---------------------------------------------------------------------------
@@ -282,7 +364,7 @@ export async function saveProject(formData: FormData) {
 
   if (!project.title) {
     redirect(
-      `/admin/projects/${id || "new"}?error=${encodeURIComponent("Title is required")}`,
+      adminErrorUrl(`/admin/projects/${id || "new"}`, "Title is required"),
     );
   }
 
@@ -291,13 +373,16 @@ export async function saveProject(formData: FormData) {
     : await supabase.from("projects").insert(project);
 
   if (error) {
-    redirect(
-      `/admin/projects/${id || "new"}?error=${encodeURIComponent(error.message)}`,
-    );
+    redirect(adminErrorUrl(`/admin/projects/${id || "new"}`, error.message));
   }
 
   revalidatePublic();
-  redirect("/admin/projects");
+  redirect(
+    adminNoticeUrl(
+      "/admin/projects",
+      id ? "project-updated" : "project-created",
+    ),
+  );
 }
 
 // Quick show/hide from the projects list, without opening the editor
@@ -305,19 +390,36 @@ export async function toggleProjectVisibility(formData: FormData) {
   const supabase = await requireUser();
   const id = String(formData.get("id") ?? "");
   const visible = formData.get("visible") === "true";
-  if (id) {
-    await supabase.from("projects").update({ visible }).eq("id", id);
+  if (!id) {
+    redirect(adminErrorUrl("/admin/projects", "Missing project ID"));
+  }
+  const { error } = await supabase
+    .from("projects")
+    .update({ visible })
+    .eq("id", id);
+  if (error) {
+    redirect(adminErrorUrl("/admin/projects", error.message));
   }
   revalidatePublic();
   revalidatePath("/admin/projects");
+  redirect(
+    adminNoticeUrl(
+      "/admin/projects",
+      visible ? "project-shown" : "project-hidden",
+    ),
+  );
 }
 
 export async function deleteProject(formData: FormData) {
   const supabase = await requireUser();
   const id = String(formData.get("id") ?? "");
-  if (id) {
-    await supabase.from("projects").delete().eq("id", id);
+  if (!id) {
+    redirect(adminErrorUrl("/admin/projects", "Missing project ID"));
+  }
+  const { error } = await supabase.from("projects").delete().eq("id", id);
+  if (error) {
+    redirect(adminErrorUrl("/admin/projects", error.message));
   }
   revalidatePublic();
-  redirect("/admin/projects");
+  redirect(adminNoticeUrl("/admin/projects", "project-deleted"));
 }
