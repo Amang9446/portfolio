@@ -1,8 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
 import {
   Bold,
@@ -19,6 +17,7 @@ import {
   Minus,
 } from "lucide-react";
 import { savePost, deletePost } from "@/app/admin/actions";
+import MarkdownContent from "@/components/markdown/markdown-content";
 import { createClient } from "@/lib/supabase/client";
 import PostCover from "@/components/posts/post-cover";
 import type { Post } from "@/lib/posts";
@@ -388,8 +387,8 @@ export default function PostForm({ post, error }: PostFormProps) {
     },
     {
       icon: <SquareCode className="h-3.5 w-3.5" />,
-      label: "Code block",
-      action: () => wrap("```\n", "\n```", "code"),
+      label: "Code block (TSX)",
+      action: () => wrap("```tsx\n", "\n```", "code"),
     },
     {
       icon: <Quote className="h-3.5 w-3.5" />,
@@ -642,12 +641,10 @@ export default function PostForm({ post, error }: PostFormProps) {
           {previewVisible && (
             <div className="markdown max-h-[40rem] overflow-y-auto p-6">
               {content.trim() ? (
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
+                <MarkdownContent
+                  content={content}
                   urlTransform={resolveImageUrl}
-                >
-                  {content}
-                </ReactMarkdown>
+                />
               ) : (
                 <p className="text-muted-foreground">Nothing to preview yet.</p>
               )}

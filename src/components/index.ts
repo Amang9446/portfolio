@@ -14,9 +14,13 @@ export { default as Footer } from "./layout/Footer";
 // Project Components
 export { default as ProjectCard } from "./projects/ProjectCard";
 
+// Markdown Components
+export { default as MarkdownContent } from "./markdown/markdown-content";
+
 // Post Components
 export { default as PostCard } from "./posts/post-card";
 export { default as PostCover } from "./posts/post-cover";
 export { default as PostGrid } from "./posts/post-grid";
+export { default as PostLikeButton } from "./posts/post-like-button";
 export { default as PostViewTracker } from "./posts/post-view-tracker";
 export { default as ViewCount } from "./posts/view-count";

@@ -55,6 +55,13 @@
   --border: oklch(0.245 0.012 50 / 12%);
   --input: oklch(0.245 0.012 50 / 16%);
   --ring: oklch(0.5 0.085 40);
+  --syntax-comment: oklch(0.52 0.018 55);
+  --syntax-keyword: oklch(0.47 0.12 28);
+  --syntax-string: oklch(0.43 0.09 145);
+  --syntax-number: oklch(0.47 0.1 275);
+  --syntax-title: oklch(0.44 0.1 235);
+  --syntax-type: oklch(0.48 0.1 70);
+  --syntax-meta: oklch(0.48 0.09 330);
 }
 
 .dark {
@@ -76,6 +83,13 @@
   --border: oklch(0.92 0.008 70 / 11%);
   --input: oklch(0.92 0.008 70 / 15%);
   --ring: oklch(0.74 0.07 45);
+  --syntax-comment: oklch(0.67 0.018 55);
+  --syntax-keyword: oklch(0.78 0.1 35);
+  --syntax-string: oklch(0.78 0.09 145);
+  --syntax-number: oklch(0.78 0.1 275);
+  --syntax-title: oklch(0.79 0.09 235);
+  --syntax-type: oklch(0.8 0.09 75);
+  --syntax-meta: oklch(0.78 0.09 330);
 }
 
 @layer base {
@@ -192,16 +206,74 @@
   padding: 0.15em 0.4em;
 }
 .markdown pre {
-  background: var(--muted);
+  background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 1.25rem;
   overflow-x: auto;
+  line-height: 1.65;
+  tab-size: 2;
 }
 .markdown pre code {
   background: none;
   padding: 0;
   font-size: 0.85rem;
+}
+.markdown .hljs-comment,
+.markdown .hljs-quote {
+  color: var(--syntax-comment);
+  font-style: italic;
+}
+.markdown .hljs-keyword,
+.markdown .hljs-selector-tag,
+.markdown .hljs-literal,
+.markdown .hljs-doctag {
+  color: var(--syntax-keyword);
+}
+.markdown .hljs-string,
+.markdown .hljs-regexp,
+.markdown .hljs-attr,
+.markdown .hljs-template-variable {
+  color: var(--syntax-string);
+}
+.markdown .hljs-number,
+.markdown .hljs-symbol,
+.markdown .hljs-bullet {
+  color: var(--syntax-number);
+}
+.markdown .hljs-title,
+.markdown .hljs-section,
+.markdown .hljs-selector-id,
+.markdown .hljs-selector-class {
+  color: var(--syntax-title);
+}
+.markdown .hljs-title.function_,
+.markdown .hljs-function .hljs-title {
+  font-weight: 600;
+}
+.markdown .hljs-type,
+.markdown .hljs-class .hljs-title,
+.markdown .hljs-built_in,
+.markdown .hljs-variable.language_ {
+  color: var(--syntax-type);
+}
+.markdown .hljs-meta,
+.markdown .hljs-meta .hljs-keyword {
+  color: var(--syntax-meta);
+}
+.markdown .hljs-emphasis {
+  font-style: italic;
+}
+.markdown .hljs-strong {
+  font-weight: 700;
+}
+.markdown .hljs-addition {
+  color: var(--syntax-string);
+  background: oklch(from var(--syntax-string) l c h / 10%);
+}
+.markdown .hljs-deletion {
+  color: var(--syntax-keyword);
+  background: oklch(from var(--syntax-keyword) l c h / 10%);
 }
 .markdown img {
   border-radius: var(--radius-lg);

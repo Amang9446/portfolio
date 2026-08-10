@@ -45,6 +45,8 @@ export default async function AdminPostsPage() {
                 </p>
                 <p className="mt-0.5 font-mono text-xs text-muted-foreground">
                   /{post.slug} · {post.view_count.toLocaleString("en-US")} views
+                  {" · "}
+                  {post.like_count.toLocaleString("en-US")} likes
                   {" · updated "}
                   {formatDate(post.updated_at)}
                 </p>

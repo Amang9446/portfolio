@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import NavBar from "@/components/layout/nav-bar";
 import Footer from "@/components/layout/Footer";
+import MarkdownContent from "@/components/markdown/markdown-content";
 import PostCover from "@/components/posts/post-cover";
+import PostLikeButton from "@/components/posts/post-like-button";
 import PostViewTracker from "@/components/posts/post-view-tracker";
 import { getPostBySlug, getPublishedPosts } from "@/lib/posts";
 import { getSiteContent } from "@/lib/settings";
+import { absoluteUrl } from "@/lib/site-url";
+import { SOCIAL_IMAGE_SIZE, socialImageUrl } from "@/lib/social-image";
 
 export const revalidate = 60;
 
@@ -31,24 +33,53 @@ export async function generateMetadata({
 
   const title = post.meta?.title || `${post.title} | Aman`;
   const description = post.meta?.description || post.excerpt;
-  const ogImage = post.meta?.ogImage || post.cover_image_url || undefined;
+  const articlePath = `/blog/${encodeURIComponent(post.slug)}`;
+  const articleUrl = absoluteUrl(articlePath);
+  const shareImageUrl = socialImageUrl(
+    post.slug,
+    post.updated_at || post.id,
+  );
+  const imageAlt = post.cover_image_alt.trim() || post.title;
 
   return {
     title,
     description,
     keywords: post.meta?.keywords || undefined,
+    alternates: {
+      canonical: articlePath,
+    },
     openGraph: {
       title,
       description,
+      url: articleUrl,
+      siteName: "Aman Portfolio",
       type: "article",
       publishedTime: post.published_at ?? undefined,
-      ...(ogImage ? { images: [ogImage] } : {}),
+      modifiedTime: post.updated_at,
+      authors: ["Aman"],
+      images: [
+        {
+          url: shareImageUrl,
+          width: SOCIAL_IMAGE_SIZE.width,
+          height: SOCIAL_IMAGE_SIZE.height,
+          alt: imageAlt,
+          type: "image/png",
+        },
+      ],
     },
     twitter: {
-      card: ogImage ? "summary_large_image" : "summary",
+      card: "summary_large_image",
       title,
       description,
-      ...(ogImage ? { images: [ogImage] } : {}),
+      creator: "@amanunreal",
+      images: [
+        {
+          url: shareImageUrl,
+          width: SOCIAL_IMAGE_SIZE.width,
+          height: SOCIAL_IMAGE_SIZE.height,
+          alt: imageAlt,
+        },
+      ],
     },
   };
 }
@@ -111,10 +142,14 @@ export default async function BlogPostPage({ params }: PageProps) {
         />
 
         <div className="markdown mx-auto mt-12 max-w-3xl md:mt-16">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {post.content}
-          </ReactMarkdown>
+          <MarkdownContent content={post.content} />
         </div>
+
+        <PostLikeButton
+          postId={post.id}
+          initialCount={post.like_count}
+          className="mx-auto mt-14 max-w-3xl md:mt-18"
+        />
       </article>
       <Footer author={site.metadata.author} />
     </main>

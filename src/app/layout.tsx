@@ -5,6 +5,7 @@ import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { getSiteContent } from "@/lib/settings";
+import { siteUrl } from "@/lib/site-url";
 
 const schibsted = Schibsted_Grotesk({
   variable: "--font-schibsted",
@@ -25,11 +26,15 @@ export async function generateMetadata(): Promise<Metadata> {
   const { metadata, hero } = await getSiteContent();
 
   return {
+    metadataBase: siteUrl,
     title: metadata.title,
     description: metadata.description,
     keywords: metadata.keywords.join(", "),
     authors: [{ name: metadata.author }],
     creator: metadata.author,
+    alternates: {
+      canonical: "/",
+    },
     openGraph: {
       title: metadata.title,
       description: metadata.description,
