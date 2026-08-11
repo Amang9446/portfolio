@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { PostSummary } from "@/lib/posts";
 
 type CoverPost = Pick<
@@ -12,13 +13,40 @@ const RATIOS = {
   wide: "aspect-[16/9] md:aspect-[21/9]",
 } as const;
 
+const IMAGE_SIZES: Record<keyof typeof RATIOS, string> = {
+  "16/9": "(max-width: 640px) calc(100vw - 3rem), 464px",
+  "3/2": "(max-width: 768px) calc(100vw - 3rem), 464px",
+  wide: "(max-width: 1024px) calc(100vw - 3rem), 976px",
+};
+
+// Keep this aligned with `images.remotePatterns` in next.config.ts. Unknown
+// CMS URLs still use a native image below instead of failing at runtime.
+const OPTIMIZED_IMAGE_HOSTS = new Set([
+  "res.cloudinary.com",
+  "pbs.twimg.com",
+  "nasejsbkkaonqcfkxljf.supabase.co",
+  "play-lh.googleusercontent.com",
+]);
+
+function canUseNextImage(imageUrl: string) {
+  if (imageUrl.startsWith("/")) return true;
+
+  try {
+    const url = new URL(imageUrl);
+    return url.protocol === "https:" && OPTIMIZED_IMAGE_HOSTS.has(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
 // Hairline weave angles, picked per post so a grid of coverless cards varies
 // slightly instead of reading as a row of loading skeletons.
 const WEAVE_ANGLES = [135, 45, 108, 18];
 
 function weaveAngle(seed: string) {
   let hash = 0;
-  for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) | 0;
+  for (let i = 0; i < seed.length; i++)
+    hash = (hash * 31 + seed.charCodeAt(i)) | 0;
   return WEAVE_ANGLES[Math.abs(hash) % WEAVE_ANGLES.length];
 }
 
@@ -67,22 +95,36 @@ export default function PostCover({
     );
   }
 
+  const imageClass = `object-cover ${
+    interactive
+      ? "transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+      : ""
+  }`;
+
   return (
     <div className={frame}>
-      {/* CMS images can come from Supabase Storage or an external URL. A
-          native image keeps that source list open without growing Next config. */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={imageUrl}
-        alt={imageAlt}
-        loading={eager ? "eager" : "lazy"}
-        decoding="async"
-        className={`absolute inset-0 h-full w-full object-cover ${
-          interactive
-            ? "transition-transform duration-700 ease-out group-hover:scale-[1.03]"
-            : ""
-        }`}
-      />
+      {canUseNextImage(imageUrl) ? (
+        <Image
+          src={imageUrl}
+          alt={imageAlt}
+          fill
+          sizes={IMAGE_SIZES[ratio]}
+          preload={eager}
+          className={imageClass}
+        />
+      ) : (
+        // Preserve support for CMS image hosts that are not configured in
+        // Next.js yet, including local blob URLs in the admin preview.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={imageUrl}
+          alt={imageAlt}
+          loading={eager ? "eager" : "lazy"}
+          fetchPriority={eager ? "high" : "auto"}
+          decoding="async"
+          className={`absolute inset-0 h-full w-full ${imageClass}`}
+        />
+      )}
     </div>
   );
 }

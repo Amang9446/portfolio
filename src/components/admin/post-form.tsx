@@ -27,6 +27,10 @@ interface PendingImage {
   objectUrl: string;
 }
 
+// Upload paths contain a timestamp, so each URL is immutable and can be
+// cached by browsers and the CDN for one year.
+const PUBLIC_MEDIA_CACHE_SECONDS = "31536000";
+
 const inputClass =
   "h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none transition-colors focus:border-ring";
 
@@ -260,7 +264,10 @@ export default function PostForm({ post, error }: PostFormProps) {
       const path = `posts/${Date.now()}-${slugify(file.name.replace(/\.[^.]+$/, "")) || "image"}.${ext}`;
       const { error: uploadError } = await supabase.storage
         .from("media")
-        .upload(path, file, { contentType: file.type });
+        .upload(path, file, {
+          contentType: file.type,
+          cacheControl: PUBLIC_MEDIA_CACHE_SECONDS,
+        });
       if (uploadError) {
         throw new Error(`Image upload failed: ${uploadError.message}`);
       }
@@ -281,7 +288,10 @@ export default function PostForm({ post, error }: PostFormProps) {
     const supabase = createClient();
     const { error: uploadError } = await supabase.storage
       .from("media")
-      .upload(path, file, { contentType: file.type });
+      .upload(path, file, {
+        contentType: file.type,
+        cacheControl: PUBLIC_MEDIA_CACHE_SECONDS,
+      });
     if (uploadError) {
       throw new Error(`Banner upload failed: ${uploadError.message}`);
     }

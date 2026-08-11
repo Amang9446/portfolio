@@ -28,6 +28,22 @@ const detectedLanguages = [
   "xml",
 ];
 
+const LazyArticleImage: NonNullable<Components["img"]> = ({
+  node,
+  alt,
+  ...props
+}) => {
+  // `node` belongs to react-markdown and must not reach the native element.
+  void node;
+
+  return (
+    // Article images are below the cover, so they should not compete with the
+    // page's largest-contentful-paint image during the initial load.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img {...props} alt={alt ?? ""} loading="lazy" decoding="async" />
+  );
+};
+
 function createHeadingComponent(
   tag: "h2" | "h3",
   headingIds: Map<number, string>,
@@ -71,6 +87,7 @@ export default function MarkdownContent({
     ? {
         h2: createHeadingComponent("h2", headingIds),
         h3: createHeadingComponent("h3", headingIds),
+        img: LazyArticleImage,
         pre: CodeBlock,
       }
     : undefined;
