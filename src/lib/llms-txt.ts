@@ -2,6 +2,7 @@ import {
   articleMarkdownPath,
   buildArticleMarkdown,
 } from "@/lib/article-markdown";
+import { caseStudyMarkdownPath } from "@/lib/case-study-markdown";
 import { absoluteUrl } from "@/lib/site-url";
 import {
   getPublishedPosts,
@@ -27,12 +28,7 @@ function linkItem(name: string, url: string, note?: string) {
 }
 
 function projectUrl(project: Project) {
-  return (
-    project.githubUrl ??
-    project.docsUrl ??
-    project.demoUrl ??
-    absoluteUrl("/#projects")
-  );
+  return absoluteUrl(caseStudyMarkdownPath(project.slug));
 }
 
 function writingLinks(posts: PostSummary[]) {
@@ -79,6 +75,13 @@ export async function buildLlmsTxt() {
     lines.push(
       "",
       "Writing is Markdown at `/blog/<slug>.md`. Prefer those URLs over the HTML pages.",
+    );
+  }
+
+  if (sections.projects) {
+    lines.push(
+      "",
+      "Project case studies are Markdown at `/projects/<slug>.md`. Prefer those URLs over the HTML pages.",
     );
   }
 

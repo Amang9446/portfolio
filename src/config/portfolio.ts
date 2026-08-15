@@ -1,5 +1,8 @@
+import type { ProjectMediaItem } from "@/lib/project-media";
+
 export interface Project {
   id: string;
+  slug: string;
   title: string;
   description: string;
   image: string;
@@ -7,6 +10,12 @@ export interface Project {
   githubUrl?: string;
   docsUrl?: string;
   tags: string[];
+  role?: string;
+  problem?: string;
+  architecture?: string;
+  challenges?: string;
+  results?: string;
+  media?: ProjectMediaItem[];
 }
 
 export interface Skill {
@@ -61,6 +70,7 @@ export const portfolioConfig: PortfolioConfig = {
   projects: [
     {
       id: "Business-App",
+      slug: "business-app",
       title: "Business App",
       description:
         "Created an app in which seller can onboard their business and get the best out of it.",
@@ -83,6 +93,7 @@ export const portfolioConfig: PortfolioConfig = {
     },
     {
       id: "Expo-Ecommerce",
+      slug: "expo-ecommerce",
       title: "Expo Ecommerce",
       description: "Created a basic ecommerce app with minimal UI",
       image:
@@ -102,6 +113,7 @@ export const portfolioConfig: PortfolioConfig = {
     },
     {
       id: "Expo-Notes App",
+      slug: "expo-notes-app",
       title: "Expo Notes App",
       description:
         "Replicated a note-taking app design from X/Twitter post using React Native & Expo",

@@ -1,19 +1,18 @@
 import Link from "next/link";
 import { FileText } from "lucide-react";
-import { articleMarkdownPath } from "@/lib/article-markdown";
 
 interface ArticleMarkdownButtonProps {
-  slug: string;
+  href: string;
 }
 
 export default function ArticleMarkdownButton({
-  slug,
+  href,
 }: ArticleMarkdownButtonProps) {
   return (
     <Link
-      href={articleMarkdownPath(slug)}
+      href={href}
       type="text/markdown"
-      title="Open this article as Markdown for LLMs"
+      title="Open this page as Markdown for LLMs"
       className="inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:text-foreground"
     >
       <FileText aria-hidden="true" className="h-3.5 w-3.5" />

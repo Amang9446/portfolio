@@ -37,7 +37,8 @@ export default async function AdminProjectsPage() {
                   {project.title}
                 </p>
                 <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
-                  {project.tags.join(" · ")}
+                  /{project.slug}
+                  {project.tags.length > 0 ? ` · ${project.tags.join(" · ")}` : ""}
                 </p>
               </Link>
               <span className="shrink-0 font-mono text-xs text-muted-foreground">

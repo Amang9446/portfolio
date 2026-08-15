@@ -7,6 +7,10 @@ const nextConfig = {
         source: "/blog/:slug.md",
         destination: "/blog/:slug/markdown",
       },
+      {
+        source: "/projects/:slug.md",
+        destination: "/projects/:slug/markdown",
+      },
     ];
   },
   async headers() {

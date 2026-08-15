@@ -8,12 +8,40 @@ export function postCacheTag(slug: string) {
   return `post:${slug}`;
 }
 
+export function projectsCacheTag() {
+  return "projects";
+}
+
+export function projectCacheTag(slug: string) {
+  return `project:${slug}`;
+}
+
 export function revalidatePublic() {
   revalidatePath("/");
   revalidatePath("/blog");
   revalidatePath("/llms.txt");
   revalidatePath("/llms-full.txt");
   updateTag(postsCacheTag());
+  updateTag(projectsCacheTag());
+}
+
+export function revalidateProject(slug: string) {
+  if (!slug) return;
+  revalidatePath(`/projects/${slug}`);
+  revalidatePath(`/projects/${slug}/markdown`);
+  updateTag(projectCacheTag(slug));
+}
+
+export function revalidateProjects(
+  slugs: readonly (string | null | undefined)[],
+) {
+  const unique = new Set<string>();
+  for (const slug of slugs) {
+    if (slug) unique.add(slug);
+  }
+  for (const slug of unique) {
+    revalidateProject(slug);
+  }
 }
 
 export function revalidateArticle(slug: string) {

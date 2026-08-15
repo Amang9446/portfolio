@@ -1,6 +1,9 @@
 import Image from "next/image";
+import Link from "next/link";
 import { Project } from "@/config/portfolio";
 import { getIcon } from "@/components/ui/icons";
+import { projectPath } from "@/lib/case-study-markdown";
+import { projectHasCaseStudy } from "@/lib/projects";
 
 interface ProjectCardProps {
   project: Project;
@@ -9,6 +12,8 @@ interface ProjectCardProps {
 
 export default function ProjectCard({ project, index }: ProjectCardProps) {
   const reversed = index % 2 === 1;
+  const href = projectPath(project.slug);
+  const hasCaseStudy = projectHasCaseStudy(project);
 
   return (
     <article
@@ -16,10 +21,8 @@ export default function ProjectCard({ project, index }: ProjectCardProps) {
         reversed ? "md:flex-row-reverse" : "md:flex-row"
       }`}
     >
-      <a
-        href={project.demoUrl ?? project.githubUrl}
-        target="_blank"
-        rel="noopener noreferrer"
+      <Link
+        href={href}
         className="block w-full overflow-hidden rounded-xl md:w-1/2"
         tabIndex={-1}
         aria-hidden="true"
@@ -34,13 +37,20 @@ export default function ProjectCard({ project, index }: ProjectCardProps) {
             src={project.image}
           />
         </div>
-      </a>
+      </Link>
 
       <div className="w-full md:w-1/2">
         <span className="font-mono text-xs text-muted-foreground">
           {String(index + 1).padStart(2, "0")}
         </span>
-        <h3 className="mt-3 text-2xl font-semibold">{project.title}</h3>
+        <h3 className="mt-3 text-2xl font-semibold">
+          <Link
+            href={href}
+            className="transition-colors hover:text-primary"
+          >
+            {project.title}
+          </Link>
+        </h3>
         <p className="mt-3 max-w-[48ch] leading-relaxed text-muted-foreground">
           {project.description}
         </p>
@@ -56,13 +66,28 @@ export default function ProjectCard({ project, index }: ProjectCardProps) {
           ))}
         </ul>
 
-        <div className="mt-6 flex items-center gap-5 text-sm">
+        <div className="mt-6 flex flex-wrap items-center gap-5 text-sm">
+          {hasCaseStudy ? (
+            <Link
+              href={href}
+              className="inline-flex items-center gap-1.5 font-medium text-primary transition-opacity hover:opacity-80"
+            >
+              Case study
+            </Link>
+          ) : (
+            <Link
+              href={href}
+              className="inline-flex items-center gap-1.5 font-medium text-primary transition-opacity hover:opacity-80"
+            >
+              View
+            </Link>
+          )}
           {project.demoUrl && (
             <a
               href={project.demoUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 font-medium text-primary transition-opacity hover:opacity-80"
+              className="inline-flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground"
             >
               {getIcon("external-link", { className: "h-3.5 w-3.5" })}
               Visit

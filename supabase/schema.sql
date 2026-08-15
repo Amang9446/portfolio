@@ -72,6 +72,7 @@ create index if not exists posts_home_published_at_idx
 -- ---------------------------------------------------------------------------
 create table if not exists public.projects (
   id uuid primary key default gen_random_uuid(),
+  slug text not null unique,
   title text not null,
   description text not null default '',
   image text not null default '',
@@ -81,9 +82,78 @@ create table if not exists public.projects (
   tags text[] not null default '{}',
   sort_order integer not null default 0,
   visible boolean not null default true,
+  -- Case study narrative (markdown). Empty sections are omitted on the public page.
+  role text not null default '',
+  problem text not null default '',
+  architecture text not null default '',
+  challenges text not null default '',
+  results text not null default '',
+  -- [{kind: 'image'|'video'|'link', url, alt?, caption?, label?}]
+  media jsonb not null default '[]'::jsonb
+    constraint projects_media_is_array check (jsonb_typeof(media) = 'array'),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Keep existing installations in sync when this bootstrap schema is rerun.
+alter table public.projects
+  add column if not exists slug text,
+  add column if not exists role text not null default '',
+  add column if not exists problem text not null default '',
+  add column if not exists architecture text not null default '',
+  add column if not exists challenges text not null default '',
+  add column if not exists results text not null default '',
+  add column if not exists media jsonb not null default '[]'::jsonb;
+
+update public.projects
+set slug = coalesce(
+  nullif(
+    trim(both '-' from lower(
+      regexp_replace(
+        regexp_replace(title, '[^a-zA-Z0-9\s-]', '', 'g'),
+        '\s+',
+        '-',
+        'g'
+      )
+    )),
+    ''
+  ),
+  'project-' || left(id::text, 8)
+)
+where slug is null or btrim(slug) = '';
+
+with ranked as (
+  select
+    id,
+    slug,
+    row_number() over (partition by slug order by created_at, id) as n
+  from public.projects
+)
+update public.projects p
+set slug = ranked.slug || '-' || ranked.n
+from ranked
+where p.id = ranked.id
+  and ranked.n > 1;
+
+alter table public.projects
+  alter column slug set not null;
+
+create unique index if not exists projects_slug_key
+  on public.projects (slug);
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'projects_media_is_array'
+      and conrelid = 'public.projects'::regclass
+  ) then
+    alter table public.projects
+      add constraint projects_media_is_array
+      check (jsonb_typeof(media) = 'array');
+  end if;
+end $$;
 
 -- ---------------------------------------------------------------------------
 -- updated_at trigger

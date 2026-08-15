@@ -13,6 +13,7 @@ import PostGrid from "@/components/posts/post-grid";
 import PostLikeButton from "@/components/posts/post-like-button";
 import PostViewTracker from "@/components/posts/post-view-tracker";
 import { getArticleReadingData } from "@/lib/article-reading";
+import { articleMarkdownPath } from "@/lib/article-markdown";
 import { getPostBySlug, getPublishedPosts } from "@/lib/posts";
 import { getSiteContent } from "@/lib/settings";
 import { absoluteUrl } from "@/lib/site-url";
@@ -130,7 +131,7 @@ export default async function BlogPostPage({ params }: PageProps) {
             >
               &larr; Blog
             </Link>
-            <ArticleMarkdownButton slug={post.slug} />
+            <ArticleMarkdownButton href={articleMarkdownPath(post.slug)} />
           </div>
           <h1 className="mt-6 text-3xl font-semibold leading-tight md:text-4xl">
             {post.title}

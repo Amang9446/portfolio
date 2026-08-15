@@ -13,8 +13,12 @@ import {
   revalidateAllArticleRoutes,
   revalidateArticle,
   revalidateArticles,
+  revalidateProject,
+  revalidateProjects,
   revalidatePublic,
 } from "@/lib/cache";
+import { parseProjectMedia, type ProjectMediaItem } from "@/lib/project-media";
+import { slugify } from "@/lib/slug";
 
 async function requireUser() {
   const supabase = await createClient();
@@ -405,12 +409,52 @@ export async function saveSkills(formData: FormData) {
 // ---------------------------------------------------------------------------
 // Projects
 // ---------------------------------------------------------------------------
+async function loadProjectSlugById(
+  supabase: Awaited<ReturnType<typeof requireUser>>,
+  id: string,
+) {
+  const { data, error } = await supabase
+    .from("projects")
+    .select("slug")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) {
+    console.error(
+      "Failed to load project slug for cache invalidation:",
+      error.message,
+    );
+    return null;
+  }
+  return data?.slug ?? null;
+}
+
+function projectSaveError(id: string, message: string, code?: string) {
+  const text =
+    code === "23505"
+      ? "That slug is already used by another project"
+      : message;
+  return adminErrorUrl(`/admin/projects/${id || "new"}`, text);
+}
+
 export async function saveProject(formData: FormData) {
   const supabase = await requireUser();
 
   const id = String(formData.get("id") ?? "");
+  const title = String(formData.get("title") ?? "").trim();
+  const slug =
+    slugify(String(formData.get("slug") ?? "")) || slugify(title);
+  let media: ProjectMediaItem[] = [];
+  try {
+    media = parseProjectMedia(
+      JSON.parse(String(formData.get("media") ?? "[]")),
+    );
+  } catch {
+    media = [];
+  }
+
   const project = {
-    title: String(formData.get("title") ?? "").trim(),
+    title,
+    slug,
     description: String(formData.get("description") ?? "").trim(),
     image: String(formData.get("image") ?? "").trim(),
     demo_url: String(formData.get("demo_url") ?? "").trim() || null,
@@ -422,12 +466,26 @@ export async function saveProject(formData: FormData) {
       .filter(Boolean),
     sort_order: Number(formData.get("sort_order") ?? 0) || 0,
     visible: formData.get("visible") === "on",
+    role: String(formData.get("role") ?? "").trim(),
+    problem: String(formData.get("problem") ?? "").trim(),
+    architecture: String(formData.get("architecture") ?? "").trim(),
+    challenges: String(formData.get("challenges") ?? "").trim(),
+    results: String(formData.get("results") ?? "").trim(),
+    media,
   };
 
-  if (!project.title) {
+  if (!project.title || !project.slug) {
     redirect(
-      adminErrorUrl(`/admin/projects/${id || "new"}`, "Title is required"),
+      adminErrorUrl(
+        `/admin/projects/${id || "new"}`,
+        "Title and slug are required",
+      ),
     );
+  }
+
+  let previousSlug: string | null = null;
+  if (id) {
+    previousSlug = await loadProjectSlugById(supabase, id);
   }
 
   const { error } = id
@@ -435,10 +493,11 @@ export async function saveProject(formData: FormData) {
     : await supabase.from("projects").insert(project);
 
   if (error) {
-    redirect(adminErrorUrl(`/admin/projects/${id || "new"}`, error.message));
+    redirect(projectSaveError(id, error.message, error.code));
   }
 
   revalidatePublic();
+  revalidateProjects([previousSlug, project.slug]);
   redirect(
     adminNoticeUrl(
       "/admin/projects",
@@ -455,6 +514,7 @@ export async function toggleProjectVisibility(formData: FormData) {
   if (!id) {
     redirect(adminErrorUrl("/admin/projects", "Missing project ID"));
   }
+  const slug = await loadProjectSlugById(supabase, id);
   const { error } = await supabase
     .from("projects")
     .update({ visible })
@@ -463,6 +523,7 @@ export async function toggleProjectVisibility(formData: FormData) {
     redirect(adminErrorUrl("/admin/projects", error.message));
   }
   revalidatePublic();
+  if (slug) revalidateProject(slug);
   revalidatePath("/admin/projects");
   redirect(
     adminNoticeUrl(
@@ -478,10 +539,12 @@ export async function deleteProject(formData: FormData) {
   if (!id) {
     redirect(adminErrorUrl("/admin/projects", "Missing project ID"));
   }
+  const slug = await loadProjectSlugById(supabase, id);
   const { error } = await supabase.from("projects").delete().eq("id", id);
   if (error) {
     redirect(adminErrorUrl("/admin/projects", error.message));
   }
   revalidatePublic();
+  if (slug) revalidateProject(slug);
   redirect(adminNoticeUrl("/admin/projects", "project-deleted"));
 }
