@@ -1,5 +1,7 @@
+import type { ComponentPropsWithoutRef } from "react";
 import ReactMarkdown, {
   type Components,
+  type ExtraProps,
   type UrlTransform,
 } from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
@@ -43,6 +45,74 @@ const LazyArticleImage: NonNullable<Components["img"]> = ({
     <img {...props} alt={alt ?? ""} loading="lazy" decoding="async" />
   );
 };
+
+const LANGUAGE_LABELS: Record<string, string> = {
+  bash: "Shell",
+  css: "CSS",
+  html: "HTML",
+  javascript: "JavaScript",
+  js: "JavaScript",
+  json: "JSON",
+  jsx: "JSX",
+  markdown: "Markdown",
+  md: "Markdown",
+  sql: "SQL",
+  ts: "TypeScript",
+  tsx: "TSX",
+  typescript: "TypeScript",
+  xml: "XML",
+};
+
+function languageFromClassName(value: unknown) {
+  const list = Array.isArray(value) ? value : value ? [String(value)] : [];
+  for (const item of list) {
+    const match = String(item).match(/language-([\w-]+)/);
+    if (match?.[1]) return match[1];
+  }
+  return "";
+}
+
+function languageFromPreNode(node: ExtraProps["node"]) {
+  if (!node || node.type !== "element") return "";
+
+  const fromPre = languageFromClassName(node.properties?.className);
+  if (fromPre) return fromPre;
+
+  for (const child of node.children) {
+    if (child.type !== "element") continue;
+    const fromChild = languageFromClassName(child.properties?.className);
+    if (fromChild) return fromChild;
+  }
+
+  return "";
+}
+
+function formatCodeLanguage(language: string) {
+  const key = language.toLowerCase();
+  if (!key || key === "text" || key === "txt" || key === "plaintext") {
+    return "Code";
+  }
+  return LANGUAGE_LABELS[key] ?? language.toUpperCase();
+}
+
+function ArticlePre({
+  node,
+  children,
+  className,
+}: ComponentPropsWithoutRef<"pre"> & ExtraProps) {
+  // Derive the label here (same render as react-markdown) and pass a string
+  // into the client CodeBlock. Inspecting `children` inside CodeBlock disagrees
+  // across the RSC boundary: server sees no element → "Code", client reads
+  // `language-text` → "TEXT".
+  return (
+    <CodeBlock
+      language={formatCodeLanguage(languageFromPreNode(node))}
+      className={className}
+    >
+      {children}
+    </CodeBlock>
+  );
+}
 
 function createHeadingComponent(
   tag: "h2" | "h3",
@@ -88,9 +158,12 @@ export default function MarkdownContent({
         h2: createHeadingComponent("h2", headingIds),
         h3: createHeadingComponent("h3", headingIds),
         img: LazyArticleImage,
-        pre: CodeBlock,
+        pre: ArticlePre,
+        script: () => null,
       }
-    : undefined;
+    : {
+        script: () => null,
+      };
 
   return (
     <ReactMarkdown
@@ -106,6 +179,8 @@ export default function MarkdownContent({
         ],
       ]}
       urlTransform={urlTransform}
+      disallowedElements={["script", "style"]}
+      unwrapDisallowed
       components={components}
     >
       {content}
