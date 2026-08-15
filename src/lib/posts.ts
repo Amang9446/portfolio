@@ -1,6 +1,8 @@
+import { unstable_cache } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createPublicClient } from "@/lib/supabase/public";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { postCacheTag, postsCacheTag } from "@/lib/cache";
 
 export interface PostMeta {
   title?: string;
@@ -42,8 +44,7 @@ function withLikeCount<T>(post: T) {
   };
 }
 
-async function loadPublishedPosts(homeOnly: boolean): Promise<PostSummary[]> {
-  if (!isSupabaseConfigured()) return [];
+async function fetchPublishedPosts(homeOnly: boolean): Promise<PostSummary[]> {
   const supabase = createPublicClient();
   let query = supabase
     .from("posts")
@@ -67,17 +68,7 @@ async function loadPublishedPosts(homeOnly: boolean): Promise<PostSummary[]> {
   );
 }
 
-// List pages do not need article bodies, so both queries skip `content`.
-export function getPublishedPosts(): Promise<PostSummary[]> {
-  return loadPublishedPosts(false);
-}
-
-export function getHomePosts(): Promise<PostSummary[]> {
-  return loadPublishedPosts(true);
-}
-
-export async function getPostBySlug(slug: string): Promise<Post | null> {
-  if (!isSupabaseConfigured()) return null;
+async function fetchPublishedPostBySlug(slug: string): Promise<Post | null> {
   const supabase = createPublicClient();
   const { data, error } = await supabase
     .from("posts")
@@ -90,6 +81,57 @@ export async function getPostBySlug(slug: string): Promise<Post | null> {
     return null;
   }
   return data ? withLikeCount(data as unknown as Post) : null;
+}
+
+async function fetchPublishedPostsWithContent(): Promise<Post[]> {
+  const supabase = createPublicClient();
+  const { data, error } = await supabase
+    .from("posts")
+    .select("*")
+    .eq("published", true)
+    .order("published_at", { ascending: false });
+  if (error) {
+    console.error("Failed to load posts:", error.message);
+    return [];
+  }
+  return (data ?? []).map((post) => withLikeCount(post as Post));
+}
+
+// List pages do not need article bodies, so both queries skip `content`.
+export async function getPublishedPosts(): Promise<PostSummary[]> {
+  if (!isSupabaseConfigured()) return [];
+  return unstable_cache(
+    () => fetchPublishedPosts(false),
+    ["published-posts"],
+    { tags: [postsCacheTag()], revalidate: 60 },
+  )();
+}
+
+export async function getHomePosts(): Promise<PostSummary[]> {
+  if (!isSupabaseConfigured()) return [];
+  return unstable_cache(
+    () => fetchPublishedPosts(true),
+    ["home-posts"],
+    { tags: [postsCacheTag()], revalidate: 60 },
+  )();
+}
+
+export async function getPostBySlug(slug: string): Promise<Post | null> {
+  if (!isSupabaseConfigured()) return null;
+  return unstable_cache(
+    () => fetchPublishedPostBySlug(slug),
+    ["post-by-slug", slug],
+    { tags: [postsCacheTag(), postCacheTag(slug)], revalidate: 60 },
+  )();
+}
+
+export async function getPublishedPostsWithContent(): Promise<Post[]> {
+  if (!isSupabaseConfigured()) return [];
+  return unstable_cache(
+    () => fetchPublishedPostsWithContent(),
+    ["published-posts-content"],
+    { tags: [postsCacheTag()], revalidate: 60 },
+  )();
 }
 
 export async function getAllPosts(): Promise<Post[]> {

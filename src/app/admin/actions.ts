@@ -9,6 +9,12 @@ import {
   adminNoticeUrl,
   type AdminNotice,
 } from "@/lib/admin-feedback";
+import {
+  revalidateAllArticleRoutes,
+  revalidateArticle,
+  revalidateArticles,
+  revalidatePublic,
+} from "@/lib/cache";
 
 async function requireUser() {
   const supabase = await createClient();
@@ -19,9 +25,37 @@ async function requireUser() {
   return supabase;
 }
 
-function revalidatePublic() {
-  revalidatePath("/");
-  revalidatePath("/blog");
+async function loadPostSlugs(
+  supabase: Awaited<ReturnType<typeof requireUser>>,
+) {
+  const { data, error } = await supabase.from("posts").select("slug");
+  if (error) {
+    console.error(
+      "Failed to load post slugs for cache invalidation:",
+      error.message,
+    );
+    return [];
+  }
+  return (data ?? []).map((row) => row.slug).filter(Boolean);
+}
+
+async function loadPostSlugById(
+  supabase: Awaited<ReturnType<typeof requireUser>>,
+  id: string,
+) {
+  const { data, error } = await supabase
+    .from("posts")
+    .select("slug")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) {
+    console.error(
+      "Failed to load post slug for cache invalidation:",
+      error.message,
+    );
+    return null;
+  }
+  return data?.slug ?? null;
 }
 
 // ---------------------------------------------------------------------------
@@ -113,10 +147,11 @@ export async function savePost(formData: FormData) {
   }
 
   let error;
+  let previousSlug: string | null = null;
   if (id) {
     const existing = await supabase
       .from("posts")
-      .select("published_at")
+      .select("published_at, slug")
       .eq("id", id)
       .maybeSingle();
     if (existing.error) {
@@ -124,6 +159,7 @@ export async function savePost(formData: FormData) {
         adminErrorUrl(`/admin/posts/${id}`, existing.error.message),
       );
     }
+    previousSlug = existing.data?.slug ?? null;
     const published_at = published
       ? (existing.data?.published_at ?? new Date().toISOString())
       : null;
@@ -143,7 +179,7 @@ export async function savePost(formData: FormData) {
   }
 
   revalidatePublic();
-  revalidatePath(`/blog/${post.slug}`);
+  revalidateArticles([previousSlug, post.slug]);
   redirect(
     adminNoticeUrl("/admin/posts", id ? "post-updated" : "post-created"),
   );
@@ -160,7 +196,7 @@ export async function togglePostPublished(formData: FormData) {
 
   const existing = await supabase
     .from("posts")
-    .select("published_at")
+    .select("published_at, slug")
     .eq("id", id)
     .maybeSingle();
   if (existing.error) {
@@ -180,6 +216,11 @@ export async function togglePostPublished(formData: FormData) {
   }
 
   revalidatePublic();
+  if (existing.data?.slug) {
+    revalidateArticle(existing.data.slug);
+  } else {
+    revalidateAllArticleRoutes();
+  }
   revalidatePath("/admin/posts");
   redirect(
     adminNoticeUrl(
@@ -221,11 +262,17 @@ export async function deletePost(formData: FormData) {
   if (!id) {
     redirect(adminErrorUrl("/admin/posts", "Missing post ID"));
   }
+  const slug = await loadPostSlugById(supabase, id);
   const { error } = await supabase.from("posts").delete().eq("id", id);
   if (error) {
     redirect(adminErrorUrl("/admin/posts", error.message));
   }
   revalidatePublic();
+  if (slug) {
+    revalidateArticle(slug);
+  } else {
+    revalidateAllArticleRoutes();
+  }
   redirect(adminNoticeUrl("/admin/posts", "post-deleted"));
 }
 
@@ -298,16 +345,31 @@ export async function saveMeta(formData: FormData) {
 }
 
 export async function saveSections(formData: FormData) {
-  await upsertSetting(
-    "sections",
+  const supabase = await requireUser();
+  const blogEnabled = formData.get("blog") === "on";
+  const { error } = await supabase.from("site_settings").upsert(
     {
-      projects: formData.get("projects") === "on",
-      skills: formData.get("skills") === "on",
-      blog: formData.get("blog") === "on",
-      contact: formData.get("contact") === "on",
+      key: "sections",
+      value: {
+        projects: formData.get("projects") === "on",
+        skills: formData.get("skills") === "on",
+        blog: blogEnabled,
+        contact: formData.get("contact") === "on",
+      },
     },
-    "sections-saved",
+    { onConflict: "key" },
   );
+  if (error) {
+    redirect(adminErrorUrl("/admin/content", error.message));
+  }
+
+  const slugs = await loadPostSlugs(supabase);
+  revalidatePublic();
+  revalidateArticles(slugs);
+  if (!blogEnabled) {
+    revalidateAllArticleRoutes();
+  }
+  redirect(adminNoticeUrl("/admin/content", "sections-saved"));
 }
 
 export async function saveSkills(formData: FormData) {

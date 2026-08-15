@@ -31,25 +31,36 @@ function toProject(row: DbProject): Project {
   };
 }
 
-// Projects from Supabase; falls back to the static config when the DB
-// is unconfigured or empty so the site always renders.
+// Projects from Supabase. Static config is used only when the DB is
+// unconfigured or the table is truly empty — never on query errors, so a
+// blip cannot republish hidden CMS projects.
 export async function getProjects(): Promise<Project[]> {
   if (!isSupabaseConfigured()) return portfolioConfig.projects;
   const supabase = createPublicClient();
   const { data, error } = await supabase
     .from("projects")
     .select("*")
+    .eq("visible", true)
     .order("sort_order", { ascending: true });
   if (error) {
     console.error("Failed to load projects:", error.message);
-    return portfolioConfig.projects;
+    return [];
   }
-  // Fall back only when the table is truly empty — if rows exist but are all
-  // hidden, an empty list is the intended result, not the static config.
-  if (!data || data.length === 0) return portfolioConfig.projects;
-  return (data as unknown as DbProject[])
-    .filter((row) => row.visible)
-    .map(toProject);
+  if (data && data.length > 0) {
+    return (data as unknown as DbProject[]).map(toProject);
+  }
+
+  // RLS hides invisible rows from this anon client, so an empty select is
+  // ambiguous. Fall back to static config only when the table has no rows.
+  const { data: hasRows, error: existsError } = await supabase.rpc(
+    "has_any_projects",
+  );
+  if (existsError) {
+    console.error("Failed to check projects catalog:", existsError.message);
+    return [];
+  }
+  if (hasRows) return [];
+  return portfolioConfig.projects;
 }
 
 export async function getAllDbProjects(): Promise<DbProject[]> {

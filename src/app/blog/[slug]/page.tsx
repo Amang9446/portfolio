@@ -5,6 +5,7 @@ import NavBar from "@/components/layout/nav-bar";
 import Footer from "@/components/layout/Footer";
 import MarkdownContent from "@/components/markdown/markdown-content";
 import ArticleReadingProgress from "@/components/posts/article-reading-progress";
+import ArticleMarkdownButton from "@/components/posts/article-markdown-button";
 import ArticleShareButton from "@/components/posts/article-share-button";
 import ArticleTableOfContents from "@/components/posts/article-table-of-contents";
 import PostCover from "@/components/posts/post-cover";
@@ -52,6 +53,9 @@ export async function generateMetadata({
     keywords: post.meta?.keywords || undefined,
     alternates: {
       canonical: articlePath,
+      types: {
+        "text/markdown": `${articlePath}.md`,
+      },
     },
     openGraph: {
       title,
@@ -119,12 +123,15 @@ export default async function BlogPostPage({ params }: PageProps) {
       <NavBar socialLinks={site.contact.socialLinks} sections={site.sections} />
       <article className="mx-auto w-full max-w-5xl flex-1 px-6 py-20 md:py-28">
         <div className="mx-auto max-w-3xl">
-          <Link
-            href="/blog"
-            className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:text-foreground"
-          >
-            &larr; Blog
-          </Link>
+          <div className="flex items-center justify-between gap-4">
+            <Link
+              href="/blog"
+              className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:text-foreground"
+            >
+              &larr; Blog
+            </Link>
+            <ArticleMarkdownButton slug={post.slug} />
+          </div>
           <h1 className="mt-6 text-3xl font-semibold leading-tight md:text-4xl">
             {post.title}
           </h1>
