@@ -64,7 +64,7 @@ export default function ArticleTableOfContents({
     <>
       <details
         ref={mobileDetails}
-        className="rounded-lg border border-border bg-card p-4 lg:hidden"
+        className="no-print rounded-lg border border-border bg-card p-4 lg:hidden"
       >
         <summary className="cursor-pointer font-mono text-xs uppercase tracking-[0.16em] text-muted-foreground">
           On this page
@@ -77,7 +77,7 @@ export default function ArticleTableOfContents({
       </details>
 
       <aside
-        className="hidden lg:col-start-2 lg:row-start-1 lg:block"
+        className="no-print hidden lg:col-start-2 lg:row-start-1 lg:block"
         aria-label="Table of contents"
       >
         <nav className="sticky top-28 max-h-[calc(100vh-8rem)] overflow-y-auto pr-2 pb-4">

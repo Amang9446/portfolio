@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import {
   Bold,
   Italic,
+  Strikethrough,
   Heading2,
   Heading3,
   Link2,
@@ -13,10 +14,17 @@ import {
   Quote,
   List,
   ListOrdered,
+  ListTodo,
   Image as ImageIcon,
+  Table as TableIcon,
   Minus,
+  CircleHelp,
 } from "lucide-react";
-import { savePost, deletePost } from "@/app/admin/actions";
+import {
+  savePost,
+  deletePost,
+  checkPostSlugAvailability,
+} from "@/app/admin/actions";
 import MarkdownContent from "@/components/markdown/markdown-content";
 import { createClient } from "@/lib/supabase/client";
 import PostCover from "@/components/posts/post-cover";
@@ -30,6 +38,9 @@ interface PendingImage {
 // Upload paths contain a timestamp, so each URL is immutable and can be
 // cached by browsers and the CDN for one year.
 const PUBLIC_MEDIA_CACHE_SECONDS = "31536000";
+const MAX_IMAGE_BYTES = 50 * 1024 * 1024;
+// Roughly where search engines start truncating descriptions
+const EXCERPT_HINT_LENGTH = 160;
 
 const inputClass =
   "h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none transition-colors focus:border-ring";
@@ -44,7 +55,74 @@ function slugify(value: string) {
     .replace(/^-|-$/g, "");
 }
 
+// --- markdown continuation helpers (module-level so they're testable) ------
+
+function continueListPrefix(line: string): string | null {
+  const task = line.match(/^(\s*(?:[-*+]|\d+\.)\s+)\[[ xX]\]\s+/);
+  if (task) return `${task[1]}[ ] `;
+  const unordered = line.match(/^(\s*[-*+]\s+)/);
+  if (unordered) return unordered[1];
+  const ordered = line.match(/^(\s*)(\d+)(\.\s+)/);
+  if (ordered) return `${ordered[1]}${Number(ordered[2]) + 1}${ordered[3]}`;
+  const quote = line.match(/^(\s*>+\s*)/);
+  if (quote) return quote[1];
+  return null;
+}
+
+// An "empty" item is a marker with no content — Enter there exits the list.
+function emptyMarkerLength(line: string): number {
+  const task = line.match(/^(\s*(?:[-*+]|\d+\.)\s+\[[ xX]\]\s*)$/);
+  if (task) return task[1].length;
+  const unordered = line.match(/^(\s*[-*+]\s*)$/);
+  if (unordered) return unordered[1].length;
+  const ordered = line.match(/^(\s*\d+\.\s*)$/);
+  if (ordered) return ordered[1].length;
+  const quote = line.match(/^(\s*>+\s*)$/);
+  if (quote) return quote[1].length;
+  return 0;
+}
+
 type Mode = "write" | "split" | "preview";
+type SlugStatus = "idle" | "checking" | "available" | "taken";
+
+const shortcutGroups: {
+  group: string;
+  items: { keys: string; action: string }[];
+}[] = [
+  {
+    group: "Inline",
+    items: [
+      { keys: "⌘ B", action: "Bold" },
+      { keys: "⌘ I", action: "Italic" },
+      { keys: "⌘ ⇧ X", action: "Strikethrough" },
+      { keys: "⌘ E", action: "Inline code" },
+      { keys: "⌘ K", action: "Insert link" },
+    ],
+  },
+  {
+    group: "Blocks",
+    items: [
+      { keys: "⌘ ⇧ 2", action: "Heading (toggles)" },
+      { keys: "⌘ ⇧ 3", action: "Subheading (toggles)" },
+      { keys: "⌘ ⇧ E", action: "Code block" },
+      { keys: "⌘ ⇧ .", action: "Quote" },
+      { keys: "⌘ ⇧ 7", action: "Numbered list" },
+      { keys: "⌘ ⇧ 8", action: "Bullet list" },
+      { keys: "⌘ ⇧ I", action: "Insert image" },
+      { keys: "Tab / ⇧ Tab", action: "Indent / outdent" },
+      { keys: "Enter", action: "Continue list / quote; exit on empty item" },
+    ],
+  },
+  {
+    group: "Editor",
+    items: [
+      { keys: "⌘ S", action: "Save post" },
+      { keys: "⌘ ⇧ P", action: "Cycle write / split / preview" },
+      { keys: "Esc", action: "Close this panel" },
+      { keys: "Paste / drop", action: "Image uploads on Save; URL over selection links it" },
+    ],
+  },
+];
 
 interface PostFormProps {
   post?: Post;
@@ -55,6 +133,11 @@ export default function PostForm({ post, error }: PostFormProps) {
   const [title, setTitle] = useState(post?.title ?? "");
   const [slug, setSlug] = useState(post?.slug ?? "");
   const [slugTouched, setSlugTouched] = useState(Boolean(post));
+  const [slugCheck, setSlugStatus] = useState<{
+    slug: string;
+    status: SlugStatus;
+  }>({ slug: "", status: "idle" });
+  const [excerpt, setExcerpt] = useState(post?.excerpt ?? "");
   const [content, setContent] = useState(post?.content ?? "");
   const [coverImageUrl, setCoverImageUrl] = useState(
     post?.cover_image_url ?? "",
@@ -67,7 +150,12 @@ export default function PostForm({ post, error }: PostFormProps) {
   );
   const [mode, setMode] = useState<Mode>("write");
   const [draftRestored, setDraftRestored] = useState(false);
+  const [backedUpAt, setBackedUpAt] = useState<Date | null>(null);
+  const [cursor, setCursor] = useState({ line: 1, col: 1 });
+  const [dragActive, setDragActive] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const [saving, setSaving] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const coverFileInputRef = useRef<HTMLInputElement>(null);
@@ -95,15 +183,86 @@ export default function PostForm({ post, error }: PostFormProps) {
   // Back up content while typing (debounced)
   useEffect(() => {
     const t = setTimeout(() => {
-      if (content) localStorage.setItem(draftKey, content);
+      if (content) {
+        localStorage.setItem(draftKey, content);
+        setBackedUpAt(new Date());
+      }
     }, 500);
     return () => clearTimeout(t);
   }, [content, draftKey]);
 
-  const clearDraft = () => localStorage.removeItem(draftKey);
+  const clearDraft = () => {
+    localStorage.removeItem(draftKey);
+    setBackedUpAt(null);
+  };
+
+  // Live slug availability — catches "duplicate slug" before Save does,
+  // when fixing it is still cheap. The status is keyed to the slug it was
+  // computed for, so reverting the input can never show a stale verdict.
+  useEffect(() => {
+    if (!slug || slug === post?.slug) return;
+    const t = setTimeout(() => {
+      setSlugStatus({ slug, status: "checking" });
+      checkPostSlugAvailability(slug, post?.id)
+        .then((result) =>
+          setSlugStatus({
+            slug,
+            status: result.checked && result.taken ? "taken" : "available",
+          }),
+        )
+        .catch(() => setSlugStatus({ slug, status: "idle" }));
+    }, 400);
+    return () => clearTimeout(t);
+  }, [slug, post?.id, post?.slug]);
+
+  const slugStatus: SlugStatus =
+    slugCheck.slug === slug && slug !== post?.slug ? slugCheck.status : "idle";
+
+  // The textarea grows with the article instead of scrolling internally.
+  const editorVisible = mode !== "preview";
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el || !editorVisible) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [content, mode, editorVisible]);
+
+  const updateCursor = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    const pos = el.selectionStart;
+    const before = el.value.slice(0, pos);
+    setCursor({
+      line: before.split("\n").length,
+      col: pos - before.lastIndexOf("\n"),
+    });
+  }, []);
+
+  // Warn before leaving with edits that exist only in this tab. A just-saved
+  // flag suppresses the warning for the post-save redirect.
+  const dirty =
+    title !== (post?.title ?? "") ||
+    slug !== (post?.slug ?? "") ||
+    excerpt !== (post?.excerpt ?? "") ||
+    content !== (post?.content ?? "") ||
+    coverImageUrl !== (post?.cover_image_url ?? "") ||
+    coverImageAlt !== (post?.cover_image_alt ?? "");
+  const justSavedRef = useRef(false);
+  useEffect(() => {
+    if (!dirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      if (justSavedRef.current) return;
+      e.preventDefault();
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [dirty]);
 
   // --- editing helpers -----------------------------------------------------
 
+  // Route replacements through execCommand so they join the browser's native
+  // undo stack — ⌘Z keeps working after toolbar clicks. Falls back to a
+  // direct state update where execCommand is unavailable.
   const applyEdit = useCallback(
     (
       transform: (
@@ -118,13 +277,38 @@ export default function PostForm({ post, error }: PostFormProps) {
       const { selectionStart: start, selectionEnd: end, value } = el;
       const selected = value.slice(start, end);
       const { text, selStart, selEnd } = transform(selected, value, start, end);
-      setContent(text);
+      if (text === value) return;
+
+      // Smallest changed span between old and new text
+      let p = 0;
+      const maxP = Math.min(value.length, text.length);
+      while (p < maxP && value[p] === text[p]) p++;
+      let s = 0;
+      const maxS = Math.min(value.length - p, text.length - p);
+      while (
+        s < maxS &&
+        value[value.length - 1 - s] === text[text.length - 1 - s]
+      ) {
+        s++;
+      }
+      const replacement = text.slice(p, text.length - s);
+
+      el.focus();
+      el.setSelectionRange(p, value.length - s);
+      let inserted = false;
+      try {
+        inserted = document.execCommand("insertText", false, replacement);
+      } catch {
+        inserted = false;
+      }
+      if (!inserted) setContent(text);
       requestAnimationFrame(() => {
         el.focus();
         el.setSelectionRange(selStart, selEnd);
+        updateCursor();
       });
     },
-    [],
+    [updateCursor],
   );
 
   const wrap = useCallback(
@@ -178,30 +362,104 @@ export default function PostForm({ post, error }: PostFormProps) {
     [applyEdit],
   );
 
+  // Heading-aware variant of prefixLines: replaces any existing heading
+  // level, and pressing it again on an already-heading line removes the
+  // prefix — so ⌘⇧2 cycles text → ## → plain instead of stacking "## ## ".
+  const toggleHeading = useCallback(
+    (level: 2 | 3) =>
+      applyEdit((_selected, full, start, end) => {
+        const lineStart = full.lastIndexOf("\n", start - 1) + 1;
+        const lineEndIdx = full.indexOf("\n", end);
+        const lineEnd = lineEndIdx === -1 ? full.length : lineEndIdx;
+        const prefix = `${"#".repeat(level)} `;
+        const strip = (line: string) => line.replace(/^#{1,6}\s+/, "");
+        const lines = full.slice(lineStart, lineEnd).split("\n");
+        const allAtLevel = lines
+          .filter((line) => line.trim())
+          .every((line) => line.startsWith(prefix));
+        const changed = lines
+          .map((line) => {
+            if (!line.trim()) return line;
+            return allAtLevel ? strip(line) : prefix + strip(line);
+          })
+          .join("\n");
+        const text = full.slice(0, lineStart) + changed + full.slice(lineEnd);
+        return {
+          text,
+          selStart: lineStart,
+          selEnd: lineStart + changed.length,
+        };
+      }),
+    [applyEdit],
+  );
+
+  const indentSelection = useCallback(
+    (outdent: boolean) =>
+      applyEdit((_selected, full, start, end) => {
+        const lineStart = full.lastIndexOf("\n", start - 1) + 1;
+        const lineEndIdx = full.indexOf("\n", end);
+        const lineEnd = lineEndIdx === -1 ? full.length : lineEndIdx;
+        const block = full.slice(lineStart, lineEnd);
+        const changed = block
+          .split("\n")
+          .map((line) =>
+            outdent
+              ? line.replace(/^ {1,2}/, "")
+              : line.trim()
+                ? `  ${line}`
+                : line,
+          )
+          .join("\n");
+        const text = full.slice(0, lineStart) + changed + full.slice(lineEnd);
+        return {
+          text,
+          selStart: lineStart,
+          selEnd: lineStart + changed.length,
+        };
+      }),
+    [applyEdit],
+  );
+
   const insertLink = useCallback(() => {
     const url = prompt("Link URL:", "https://");
     if (url) wrap("[", `](${url})`, "link text");
   }, [wrap]);
+
+  // --- images --------------------------------------------------------------
+
+  const addPendingImages = useCallback(
+    (files: File[]) => {
+      let accepted = 0;
+      for (const file of files) {
+        if (!file.type.startsWith("image/")) continue;
+        if (file.size > MAX_IMAGE_BYTES) {
+          toast.error(`"${file.name}" exceeds the 50 MB upload limit.`);
+          continue;
+        }
+        const id = crypto.randomUUID();
+        pendingImages.current.set(id, {
+          file,
+          objectUrl: URL.createObjectURL(file),
+        });
+        const alt = file.name.replace(/\.[^.]+$/, "");
+        insertBlock(`![${alt}](local:${id})`);
+        accepted++;
+      }
+      if (files.length > 0 && accepted === 0) {
+        toast.error("Only image files can be inserted.");
+      }
+    },
+    [insertBlock],
+  );
 
   const insertImage = useCallback(() => {
     fileInputRef.current?.click();
   }, []);
 
   const onImagePicked = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const files = Array.from(e.target.files ?? []);
     e.target.value = "";
-    if (!file) return;
-    if (file.size > 50 * 1024 * 1024) {
-      toast.error("Max file size is 50 MB (Supabase free tier limit).");
-      return;
-    }
-    const id = crypto.randomUUID();
-    pendingImages.current.set(id, {
-      file,
-      objectUrl: URL.createObjectURL(file),
-    });
-    const alt = file.name.replace(/\.[^.]+$/, "");
-    insertBlock(`![${alt}](local:${id})`);
+    if (files.length > 0) addPendingImages(files);
   };
 
   const clearPendingCoverImage = () => {
@@ -215,7 +473,7 @@ export default function PostForm({ post, error }: PostFormProps) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    if (file.size > 50 * 1024 * 1024) {
+    if (file.size > MAX_IMAGE_BYTES) {
       toast.error("Max file size is 50 MB (Supabase free tier limit).");
       return;
     }
@@ -248,6 +506,158 @@ export default function PostForm({ post, error }: PostFormProps) {
     }
     return url;
   };
+
+  // --- keyboard & clipboard behaviors ---------------------------------------
+
+  const handleEnter = (): boolean => {
+    const el = textareaRef.current;
+    if (!el) return false;
+    const { selectionStart: start, selectionEnd: end, value } = el;
+    if (start !== end) return false;
+    const lineStart = value.lastIndexOf("\n", start - 1) + 1;
+    const line = value.slice(lineStart, start);
+
+    const emptyLen = emptyMarkerLength(line);
+    if (emptyLen > 0) {
+      applyEdit((_s, full) => ({
+        text: full.slice(0, lineStart) + full.slice(start),
+        selStart: lineStart,
+        selEnd: lineStart,
+      }));
+      return true;
+    }
+
+    const prefix = continueListPrefix(line);
+    if (prefix) {
+      applyEdit((_s, full) => {
+        const insertion = `\n${prefix}`;
+        return {
+          text: full.slice(0, start) + insertion + full.slice(end),
+          selStart: start + insertion.length,
+          selEnd: start + insertion.length,
+        };
+      });
+      return true;
+    }
+    return false;
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
+      if (handleEnter()) e.preventDefault();
+      return;
+    }
+    if (e.key === "Tab") {
+      e.preventDefault();
+      const el = textareaRef.current;
+      if (!el) return;
+      const hasSelection = el.selectionStart !== el.selectionEnd;
+      if (hasSelection || e.shiftKey) {
+        indentSelection(e.shiftKey);
+      } else {
+        applyEdit((_s, full, start, end) => ({
+          text: `${full.slice(0, start)}  ${full.slice(end)}`,
+          selStart: start + 2,
+          selEnd: start + 2,
+        }));
+      }
+      return;
+    }
+
+    const mod = e.metaKey || e.ctrlKey;
+    if (!mod) return;
+    const key = e.key.toLowerCase();
+    // Digit keys are matched by physical position (e.code) because Shift
+    // turns e.key into punctuation on most layouts.
+    if (e.shiftKey) {
+      if (e.code === "Digit2") {
+        e.preventDefault();
+        toggleHeading(2);
+      } else if (e.code === "Digit3") {
+        e.preventDefault();
+        toggleHeading(3);
+      } else if (e.code === "Digit7") {
+        e.preventDefault();
+        prefixLines((i) => `${i + 1}. `);
+      } else if (e.code === "Digit8") {
+        e.preventDefault();
+        prefixLines("- ");
+      } else if (e.code === "Period") {
+        e.preventDefault();
+        prefixLines("> ");
+      } else if (key === "x") {
+        e.preventDefault();
+        wrap("~~", "~~", "strikethrough");
+      } else if (key === "e") {
+        e.preventDefault();
+        wrap("```tsx\n", "\n```", "code");
+      } else if (key === "i") {
+        e.preventDefault();
+        insertImage();
+      } else if (key === "p") {
+        e.preventDefault();
+        setMode((m) =>
+          m === "write" ? "split" : m === "split" ? "preview" : "write",
+        );
+      }
+      return;
+    }
+    if (key === "b") {
+      e.preventDefault();
+      wrap("**", "**", "bold");
+    } else if (key === "i") {
+      e.preventDefault();
+      wrap("*", "*", "italic");
+    } else if (key === "k") {
+      e.preventDefault();
+      insertLink();
+    } else if (key === "e") {
+      e.preventDefault();
+      wrap("`", "`", "code");
+    }
+  };
+
+  const onPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const files = Array.from(e.clipboardData?.files ?? []);
+    if (files.length > 0) {
+      e.preventDefault();
+      addPendingImages(files);
+      return;
+    }
+    const el = textareaRef.current;
+    if (!el) return;
+    const { selectionStart: start, selectionEnd: end } = el;
+    const pasted = e.clipboardData?.getData("text/plain")?.trim() ?? "";
+    // Pasting a URL onto selected text wraps it into a markdown link
+    if (start !== end && /^https?:\/\/\S+$/.test(pasted)) {
+      e.preventDefault();
+      applyEdit((selected, full) => {
+        const insertion = `[${selected}](${pasted})`;
+        const pos = start + insertion.length;
+        return {
+          text: full.slice(0, start) + insertion + full.slice(end),
+          selStart: pos,
+          selEnd: pos,
+        };
+      });
+    }
+  };
+
+  const onDrop = (e: React.DragEvent<HTMLTextAreaElement>) => {
+    const files = Array.from(e.dataTransfer?.files ?? []);
+    if (files.length === 0) return;
+    e.preventDefault();
+    setDragActive(false);
+    addPendingImages(files);
+  };
+
+  const onDragOver = (e: React.DragEvent<HTMLTextAreaElement>) => {
+    if (!e.dataTransfer?.types.includes("Files")) return;
+    e.preventDefault();
+    setDragActive(true);
+  };
+
+  // --- save ----------------------------------------------------------------
 
   // Upload images still referenced in the content, then swap local: ids for
   // real storage URLs. Runs only on Save — never while writing.
@@ -309,6 +719,10 @@ export default function PostForm({ post, error }: PostFormProps) {
       return;
     }
     e.preventDefault();
+    if (slugStatus === "taken") {
+      toast.error("Another post already uses this slug.");
+      return;
+    }
     setSaving(true);
     try {
       const finalContent = await uploadPendingImages(content);
@@ -329,6 +743,7 @@ export default function PostForm({ post, error }: PostFormProps) {
       fd.set("cover_image_url", finalCoverImageUrl);
       fd.set("cover_image_alt", coverImageAlt.trim());
       clearDraft();
+      justSavedRef.current = true; // the save redirect must not trip beforeunload
       await savePost(fd); // redirects on success
     } catch (err) {
       setSaving(false);
@@ -336,28 +751,21 @@ export default function PostForm({ post, error }: PostFormProps) {
     }
   };
 
-  const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    const mod = e.metaKey || e.ctrlKey;
-    if (!mod) return;
-    const key = e.key.toLowerCase();
-    if (key === "b") {
+  // ⌘S saves from anywhere in the form; Escape dismisses the shortcuts panel
+  const onFormKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
       e.preventDefault();
-      wrap("**", "**", "bold");
-    } else if (key === "i") {
+      formRef.current?.requestSubmit();
+    } else if (e.key === "Escape" && showShortcuts) {
       e.preventDefault();
-      wrap("*", "*", "italic");
-    } else if (key === "k") {
-      e.preventDefault();
-      insertLink();
-    } else if (key === "e") {
-      e.preventDefault();
-      wrap("`", "`", "code");
+      setShowShortcuts(false);
     }
   };
 
   // --- stats ---------------------------------------------------------------
 
   const words = content.trim() ? content.trim().split(/\s+/).length : 0;
+  const characters = content.length;
   const minutes = Math.max(1, Math.round(words / 200));
 
   const toolbar: {
@@ -376,14 +784,19 @@ export default function PostForm({ post, error }: PostFormProps) {
       action: () => wrap("*", "*", "italic"),
     },
     {
+      icon: <Strikethrough className="h-3.5 w-3.5" />,
+      label: "Strikethrough (⌘⇧X)",
+      action: () => wrap("~~", "~~", "strikethrough"),
+    },
+    {
       icon: <Heading2 className="h-3.5 w-3.5" />,
-      label: "Heading",
-      action: () => prefixLines("## "),
+      label: "Heading (⌘⇧2 · toggles)",
+      action: () => toggleHeading(2),
     },
     {
       icon: <Heading3 className="h-3.5 w-3.5" />,
-      label: "Subheading",
-      action: () => prefixLines("### "),
+      label: "Subheading (⌘⇧3 · toggles)",
+      action: () => toggleHeading(3),
     },
     {
       icon: <Link2 className="h-3.5 w-3.5" />,
@@ -397,28 +810,41 @@ export default function PostForm({ post, error }: PostFormProps) {
     },
     {
       icon: <SquareCode className="h-3.5 w-3.5" />,
-      label: "Code block (TSX)",
+      label: "Code block (⌘⇧E · TSX)",
       action: () => wrap("```tsx\n", "\n```", "code"),
     },
     {
       icon: <Quote className="h-3.5 w-3.5" />,
-      label: "Quote",
+      label: "Quote (⌘⇧.)",
       action: () => prefixLines("> "),
     },
     {
       icon: <List className="h-3.5 w-3.5" />,
-      label: "Bullet list",
+      label: "Bullet list (⌘⇧8)",
       action: () => prefixLines("- "),
     },
     {
       icon: <ListOrdered className="h-3.5 w-3.5" />,
-      label: "Numbered list",
+      label: "Numbered list (⌘⇧7)",
       action: () => prefixLines((i) => `${i + 1}. `),
     },
     {
+      icon: <ListTodo className="h-3.5 w-3.5" />,
+      label: "Task list",
+      action: () => prefixLines("- [ ] "),
+    },
+    {
       icon: <ImageIcon className="h-3.5 w-3.5" />,
-      label: "Image (uploads on Save)",
+      label: "Image (⌘⇧I · uploads on Save)",
       action: insertImage,
+    },
+    {
+      icon: <TableIcon className="h-3.5 w-3.5" />,
+      label: "Table",
+      action: () =>
+        insertBlock(
+          "| Column | Column | Column |\n| --- | --- | --- |\n|  |  |  |",
+        ),
     },
     {
       icon: <Minus className="h-3.5 w-3.5" />,
@@ -427,16 +853,16 @@ export default function PostForm({ post, error }: PostFormProps) {
     },
   ];
 
-  const editorVisible = mode !== "preview";
   const previewVisible = mode !== "write";
 
   return (
-    <form action={savePost} onSubmit={onSubmit}>
+    <form ref={formRef} action={savePost} onSubmit={onSubmit} onKeyDown={onFormKeyDown}>
       {post && <input type="hidden" name="id" value={post.id} />}
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*"
+        multiple
         onChange={onImagePicked}
         className="hidden"
         aria-hidden="true"
@@ -493,19 +919,43 @@ export default function PostForm({ post, error }: PostFormProps) {
               setSlugTouched(true);
               setSlug(slugify(e.target.value));
             }}
+            aria-invalid={slugStatus === "taken"}
             className={`${inputClass} font-mono`}
           />
+          <span aria-live="polite" className="min-h-4 text-xs">
+            {slugStatus === "checking" && (
+              <span className="text-muted-foreground">Checking…</span>
+            )}
+            {slugStatus === "available" && (
+              <span className="text-primary">Slug is available</span>
+            )}
+            {slugStatus === "taken" && (
+              <span className="text-destructive">
+                Another post already uses this slug
+              </span>
+            )}
+          </span>
         </label>
       </div>
 
       <label
         className="mt-5 flex flex-col gap-1.5 text-sm"
-        title="1–2 sentence summary shown under the title on the blog list and used as the meta description for search engines and link previews. Not part of the article"
+        title="1–2 sentence summary shown under the title on the blog list, as the lede under the article title, and as the meta description for search engines and link previews."
       >
-        <span className="text-muted-foreground">Excerpt</span>
+        <span className="flex items-baseline justify-between text-muted-foreground">
+          <span>Excerpt</span>
+          <span
+            className={`font-mono text-xs ${
+              excerpt.length > EXCERPT_HINT_LENGTH ? "text-destructive" : ""
+            }`}
+          >
+            {excerpt.length}/{EXCERPT_HINT_LENGTH}
+          </span>
+        </span>
         <input
           name="excerpt"
-          defaultValue={post?.excerpt ?? ""}
+          value={excerpt}
+          onChange={(e) => setExcerpt(e.target.value)}
           className={inputClass}
         />
       </label>
@@ -606,6 +1056,53 @@ export default function PostForm({ post, error }: PostFormProps) {
             ))}
           </div>
           <div className="flex items-center gap-0.5">
+            <div className="relative">
+              <button
+                type="button"
+                title="Keyboard shortcuts"
+                aria-label="Keyboard shortcuts"
+                aria-expanded={showShortcuts}
+                onClick={() => setShowShortcuts((v) => !v)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              >
+                <CircleHelp className="h-3.5 w-3.5" />
+              </button>
+              {showShortcuts && (
+                <>
+                  <button
+                    type="button"
+                    aria-label="Close shortcuts"
+                    className="fixed inset-0 z-10 cursor-default"
+                    onClick={() => setShowShortcuts(false)}
+                  />
+                  <div className="absolute right-0 top-full z-20 mt-2 max-h-96 w-72 overflow-y-auto rounded-md border border-border bg-popover p-3 shadow-md">
+                    <p className="font-mono text-[0.65rem] uppercase tracking-[0.16em] text-muted-foreground">
+                      Shortcuts
+                    </p>
+                    {shortcutGroups.map((group) => (
+                      <dl key={group.group} className="mt-3 space-y-1.5">
+                        <p className="font-mono text-[0.6rem] uppercase tracking-[0.16em] text-muted-foreground/70">
+                          {group.group}
+                        </p>
+                        {group.items.map((s) => (
+                          <div
+                            key={s.action}
+                            className="flex items-baseline justify-between gap-3 text-xs"
+                          >
+                            <dt className="shrink-0 font-mono text-muted-foreground">
+                              {s.keys}
+                            </dt>
+                            <dd className="text-right text-foreground">
+                              {s.action}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
             {(["write", "split", "preview"] as Mode[]).map((m) => (
               <button
                 key={m}
@@ -640,13 +1137,23 @@ export default function PostForm({ post, error }: PostFormProps) {
             ref={textareaRef}
             name="content"
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={(e) => {
+              setContent(e.target.value);
+              updateCursor();
+            }}
             onKeyDown={onKeyDown}
-            rows={24}
+            onSelect={updateCursor}
+            onPaste={onPaste}
+            onDrop={onDrop}
+            onDragOver={onDragOver}
+            onDragLeave={() => setDragActive(false)}
             placeholder="Write in Markdown…"
-            className={`w-full resize-y bg-background p-4 font-mono text-sm leading-relaxed text-foreground outline-none ${
-              editorVisible ? "" : "hidden"
-            } ${mode === "split" ? "md:border-r md:border-border" : ""}`}
+            spellCheck
+            className={`min-h-[26rem] w-full resize-none overflow-hidden bg-background p-4 font-mono text-sm leading-relaxed text-foreground outline-none ${
+              dragActive ? "bg-primary/5" : ""
+            } ${editorVisible ? "" : "hidden"} ${
+              mode === "split" ? "md:border-r md:border-border" : ""
+            }`}
           />
           {previewVisible && (
             <div className="markdown max-h-[40rem] overflow-y-auto p-6">
@@ -654,6 +1161,7 @@ export default function PostForm({ post, error }: PostFormProps) {
                 <MarkdownContent
                   content={content}
                   urlTransform={resolveImageUrl}
+                  readingExperience
                 />
               ) : (
                 <p className="text-muted-foreground">Nothing to preview yet.</p>
@@ -662,9 +1170,17 @@ export default function PostForm({ post, error }: PostFormProps) {
           )}
         </div>
 
-        <p className="mt-2 text-right font-mono text-xs text-muted-foreground">
-          {words} words · ~{minutes} min read
-        </p>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 font-mono text-xs text-muted-foreground">
+          <span>
+            Ln {cursor.line}, Col {cursor.col}
+            {dragActive && " · drop to insert"}
+          </span>
+          <span>
+            {words} words · {characters} chars · ~{minutes} min read
+            {backedUpAt &&
+              ` · backed up ${backedUpAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`}
+          </span>
+        </div>
       </div>
 
       {/* Per-post SEO metadata */}

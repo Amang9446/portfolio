@@ -28,7 +28,7 @@ export default function ArticleReadingProgress({
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none fixed inset-x-0 top-0 z-50 h-0.5 bg-transparent"
+      className="no-print pointer-events-none fixed inset-x-0 top-0 z-50 h-0.5 bg-transparent"
     >
       <div
         className="h-full origin-left bg-primary will-change-transform"

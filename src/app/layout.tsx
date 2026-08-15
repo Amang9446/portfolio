@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Schibsted_Grotesk, Albert_Sans, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { ThemeProvider } from "next-themes";
+import { ThemeProvider } from "@/components/ui/theme-provider";
+import ThemeScript from "@/components/ui/theme-script";
 import { Toaster } from "@/components/ui/sonner";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { getSiteContent } from "@/lib/settings";
@@ -81,7 +82,10 @@ export default function RootLayout({
       className={`${schibsted.variable} ${albert.variable} ${geistMono.variable}`}
     >
       <body suppressHydrationWarning className="antialiased">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        {/* Server-rendered boot script; the client provider owns state
+            only (no client-rendered <script> — React 19.2 warns). */}
+        <ThemeScript />
+        <ThemeProvider>
           <Toaster position="top-right" richColors closeButton />
           <SpeedInsights />
           {children}

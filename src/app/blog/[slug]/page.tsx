@@ -5,6 +5,7 @@ import NavBar from "@/components/layout/nav-bar";
 import Footer from "@/components/layout/Footer";
 import MarkdownContent from "@/components/markdown/markdown-content";
 import ArticleReadingProgress from "@/components/posts/article-reading-progress";
+import BackToTop from "@/components/posts/back-to-top";
 import ArticleMarkdownButton from "@/components/posts/article-markdown-button";
 import ArticleShareButton from "@/components/posts/article-share-button";
 import ArticleTableOfContents from "@/components/posts/article-table-of-contents";
@@ -123,7 +124,7 @@ export default async function BlogPostPage({ params }: PageProps) {
       <NavBar socialLinks={site.contact.socialLinks} sections={site.sections} />
       <article className="mx-auto w-full max-w-5xl flex-1 px-6 py-20 md:py-28">
         <div className="mx-auto max-w-3xl">
-          <div className="flex items-center justify-between gap-4">
+          <div className="no-print flex items-center justify-between gap-4">
             <Link
               href="/blog"
               className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:text-foreground"
@@ -135,7 +136,12 @@ export default async function BlogPostPage({ params }: PageProps) {
           <h1 className="mt-6 text-3xl font-semibold leading-tight md:text-4xl">
             {post.title}
           </h1>
-          <div className="mt-4 flex flex-wrap items-center gap-2.5">
+          {post.excerpt && (
+            <p className="mt-4 text-lg leading-relaxed text-balance text-muted-foreground">
+              {post.excerpt}
+            </p>
+          )}
+          <div className="mt-5 flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
             <time
               dateTime={post.published_at ?? undefined}
               className="block font-mono text-xs tracking-wide text-muted-foreground"
@@ -148,18 +154,20 @@ export default async function BlogPostPage({ params }: PageProps) {
             <span className="font-mono text-xs tracking-wide text-muted-foreground">
               {readingMinutes} min read
             </span>
-            <span aria-hidden="true" className="text-muted-foreground/50">
-              ·
+            <span className="no-print contents">
+              <span aria-hidden="true" className="text-muted-foreground/50">
+                ·
+              </span>
+              <PostViewTracker
+                key={post.id}
+                postId={post.id}
+                initialCount={post.view_count}
+              />
+              <span aria-hidden="true" className="text-muted-foreground/50">
+                ·
+              </span>
+              <ArticleShareButton title={post.title} url={articleUrl} />
             </span>
-            <PostViewTracker
-              key={post.id}
-              postId={post.id}
-              initialCount={post.view_count}
-            />
-            <span aria-hidden="true" className="text-muted-foreground/50">
-              ·
-            </span>
-            <ArticleShareButton title={post.title} url={articleUrl} />
           </div>
         </div>
 
@@ -195,16 +203,26 @@ export default async function BlogPostPage({ params }: PageProps) {
           </div>
         </div>
 
+        {/* End-of-article mark */}
+        <div
+          aria-hidden="true"
+          className="mx-auto mt-16 flex max-w-3xl items-center justify-center gap-4"
+        >
+          <span className="h-px w-12 bg-border" />
+          <span className="h-1.5 w-1.5 rotate-45 bg-primary/70" />
+          <span className="h-px w-12 bg-border" />
+        </div>
+
         <PostLikeButton
           postId={post.id}
           initialCount={post.like_count}
-          className="mx-auto mt-14 max-w-3xl md:mt-18"
+          className="no-print mx-auto mt-14 max-w-3xl md:mt-18"
         />
       </article>
       {morePosts.length > 0 && (
         <section
           aria-labelledby="keep-reading-heading"
-          className="mx-auto w-full max-w-5xl border-t border-border px-6 pt-16 pb-20 md:pt-20 md:pb-28"
+          className="no-print mx-auto w-full max-w-5xl border-t border-border px-6 pt-16 pb-20 md:pt-20 md:pb-28"
         >
           <p className="font-mono text-xs uppercase tracking-[0.2em] text-primary">
             More writing
@@ -216,6 +234,7 @@ export default async function BlogPostPage({ params }: PageProps) {
         </section>
       )}
       <Footer author={site.metadata.author} />
+      <BackToTop />
     </main>
   );
 }

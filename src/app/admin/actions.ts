@@ -115,6 +115,27 @@ export async function signOut() {
 // ---------------------------------------------------------------------------
 // Posts
 // ---------------------------------------------------------------------------
+
+// Used by the editor's live slug check. Fails open (checked: false) so a
+// transient error never blocks writing — savePost remains the real validation.
+export async function checkPostSlugAvailability(
+  slug: string,
+  excludeId?: string,
+): Promise<{ taken: boolean; checked: boolean }> {
+  const supabase = await requireUser();
+  const cleaned = slug.trim();
+  if (!cleaned) return { taken: false, checked: false };
+
+  let query = supabase.from("posts").select("id").eq("slug", cleaned);
+  if (excludeId) query = query.neq("id", excludeId);
+  const { data, error } = await query.maybeSingle();
+  if (error) {
+    console.error("Failed to check post slug:", error.message);
+    return { taken: false, checked: false };
+  }
+  return { taken: Boolean(data), checked: true };
+}
+
 export async function savePost(formData: FormData) {
   const supabase = await requireUser();
 

@@ -151,24 +151,48 @@
   }
 }
 
-/* Blog post markdown body */
+/* Blog post markdown body — tuned for long-form reading */
 .markdown {
-  line-height: 1.75;
+  font-size: 1.0625rem;
+  line-height: 1.8;
   color: var(--foreground);
+  overflow-wrap: break-word;
+}
+@media (min-width: 768px) {
+  .markdown {
+    font-size: 1.125rem;
+  }
 }
 .markdown > * + * {
-  margin-top: 1.25em;
+  margin-top: 1.4em;
 }
 .markdown h2,
-.markdown h3 {
-  margin-top: 2em;
+.markdown h3,
+.markdown h4 {
   font-weight: 600;
+  text-wrap: balance;
 }
 .markdown h2 {
-  font-size: 1.5rem;
+  margin-top: 2.4em;
+  font-size: 1.55rem;
+  line-height: 1.3;
 }
 .markdown h3 {
-  font-size: 1.2rem;
+  margin-top: 2em;
+  font-size: 1.25rem;
+  line-height: 1.35;
+}
+.markdown h4 {
+  margin-top: 1.8em;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+}
+/* A heading directly after another stays close to its parent */
+.markdown h2 + h3,
+.markdown h2 + h4,
+.markdown h3 + h4 {
+  margin-top: 1em;
 }
 .markdown h2[id],
 .markdown h3[id] {
@@ -182,7 +206,7 @@
   text-decoration: none;
 }
 .markdown .heading-anchor > span {
-  color: var(--muted-foreground);
+  color: var(--primary);
   font-family: var(--font-mono);
   font-size: 0.75em;
   font-weight: 400;
@@ -193,13 +217,22 @@
 .markdown .heading-anchor:focus-visible > span {
   opacity: 1;
 }
+.markdown p,
+.markdown li {
+  text-wrap: pretty;
+}
 .markdown p {
-  max-width: 70ch;
+  max-width: 72ch;
 }
 .markdown a {
   color: var(--primary);
   text-decoration: underline;
+  text-decoration-thickness: 1px;
   text-underline-offset: 4px;
+  transition: text-decoration-thickness 120ms ease;
+}
+.markdown a:hover {
+  text-decoration-thickness: 2px;
 }
 .markdown ul,
 .markdown ol {
@@ -211,22 +244,45 @@
 .markdown ol {
   list-style: decimal;
 }
+.markdown li::marker {
+  color: var(--primary);
+}
 .markdown li + li {
   margin-top: 0.5em;
 }
+.markdown li > ul,
+.markdown li > ol {
+  margin-top: 0.5em;
+}
+/* GFM task lists */
+.markdown .task-list-item {
+  list-style: none;
+}
+.markdown li.task-list-item {
+  margin-left: -1.5rem;
+  padding-left: 0.25rem;
+}
+.markdown .task-list-item input[type="checkbox"] {
+  margin: 0 0.5rem 0 0;
+  accent-color: var(--primary);
+  vertical-align: -0.1em;
+}
 .markdown blockquote {
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  padding: 1rem 0;
+  border-left: 2px solid var(--primary);
+  padding: 0.15em 0 0.15em 1.25rem;
   color: var(--muted-foreground);
-  font-style: italic;
+  font-size: 1.05em;
+}
+.markdown blockquote > * + * {
+  margin-top: 0.75em;
 }
 .markdown code {
   font-family: var(--font-mono);
-  font-size: 0.875em;
+  font-size: 0.85em;
   background: var(--muted);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 0.15em 0.4em;
+  padding: 0.12em 0.38em;
 }
 .markdown pre {
   background: var(--card);
@@ -239,8 +295,13 @@
 }
 .markdown pre code {
   background: none;
+  border: 0;
   padding: 0;
   font-size: 0.85rem;
+}
+.markdown pre.code-wrap {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 .markdown .article-code-block {
   overflow: hidden;
@@ -320,24 +381,100 @@
   color: var(--syntax-keyword);
   background: oklch(from var(--syntax-keyword) l c h / 10%);
 }
+/* Images: `![alt](src "caption")` renders a captioned figure */
 .markdown img {
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
+  margin-inline: auto;
+}
+.markdown .article-figure {
+  display: block;
+}
+.markdown .article-figure img {
+  width: 100%;
+}
+.markdown .article-figure-caption {
+  display: block;
+  margin-top: 0.7rem;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  color: var(--muted-foreground);
 }
 .markdown hr {
   border: 0;
   border-top: 1px solid var(--border);
+  margin-block: 2.75rem;
+}
+/* Tables sit in a scrollable, bordered frame so wide data never breaks measure */
+.markdown .table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.markdown .table-scroll:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }
 .markdown table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+.markdown th {
+  background: var(--secondary);
+  font-weight: 600;
+  white-space: nowrap;
 }
 .markdown th,
 .markdown td {
-  border: 1px solid var(--border);
-  padding: 0.5rem 0.75rem;
+  padding: 0.55rem 0.9rem;
   text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.markdown tbody tr:last-child th,
+.markdown tbody tr:last-child td {
+  border-bottom: 0;
+}
+/* Footnotes (GFM `[^id]`) */
+.markdown sup {
+  font-size: 0.72em;
+  line-height: 0;
+}
+.markdown sup a {
+  padding: 0 0.15em;
+  text-decoration: none;
+}
+.markdown .footnotes {
+  margin-top: 3.5rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1.1rem;
+  font-size: 0.85rem;
+  color: var(--muted-foreground);
+}
+/* Rehype emits a "Footnotes" h2 that should read as a quiet label, not a
+   section heading */
+.markdown .footnotes h2 {
+  margin-top: 0;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--muted-foreground);
+}
+.markdown .footnotes ol {
+  margin-top: 0.75rem;
+  padding-left: 1.25rem;
+}
+.markdown .footnotes li {
+  margin-top: 0.35em;
+}
+.markdown .footnotes a[data-footnote-backref] {
+  margin-left: 0.3em;
+  text-decoration: none;
 }
 
 /* Quiet scrollbar tinted to theme */
@@ -359,5 +496,23 @@
 @media print {
   .no-print {
     display: none !important;
+  }
+  /* Articles print as clean documents: tight type, no awkward page splits */
+  .markdown {
+    font-size: 11pt;
+  }
+  .markdown h2,
+  .markdown h3,
+  .markdown h4 {
+    break-after: avoid;
+  }
+  .markdown pre,
+  .markdown blockquote,
+  .markdown table,
+  .markdown .article-figure {
+    break-inside: avoid;
+  }
+  .markdown a {
+    color: inherit;
   }
 }

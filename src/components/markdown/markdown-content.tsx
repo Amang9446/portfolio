@@ -8,6 +8,7 @@ import {
   getArticleReadingData,
   type ArticleHeading,
 } from "@/lib/article-reading";
+import { siteUrl } from "@/lib/site-url";
 import CodeBlock from "./code-block";
 
 interface MarkdownContentProps {
@@ -28,19 +29,72 @@ const detectedLanguages = [
   "xml",
 ];
 
+// `node` belongs to react-markdown and must not reach the native element.
+
 const LazyArticleImage: NonNullable<Components["img"]> = ({
   node,
   alt,
+  title,
   ...props
 }) => {
-  // `node` belongs to react-markdown and must not reach the native element.
   void node;
 
-  return (
-    // Article images are below the cover, so they should not compete with the
-    // page's largest-contentful-paint image during the initial load.
+  // Article images are below the cover, so they should not compete with the
+  // page's largest-contentful-paint image during the initial load.
+  const image = (
     // eslint-disable-next-line @next/next/no-img-element
     <img {...props} alt={alt ?? ""} loading="lazy" decoding="async" />
+  );
+
+  // A markdown title (`![alt](src "caption")`) becomes a visible caption.
+  // Spans, not <figure>: the image lives inside a <p>, where figure is
+  // invalid and would break hydration.
+  if (!title) return image;
+
+  return (
+    <span className="article-figure">
+      {image}
+      <span className="article-figure-caption">{title}</span>
+    </span>
+  );
+};
+
+const ArticleLink: NonNullable<Components["a"]> = ({
+  node,
+  href,
+  children,
+  ...props
+}) => {
+  void node;
+
+  const external =
+    typeof href === "string" &&
+    /^https?:\/\//.test(href) &&
+    !href.startsWith(siteUrl.origin);
+
+  return (
+    <a
+      href={href}
+      {...(external ? { target: "_blank", rel: "noreferrer" } : {})}
+      {...props}
+    >
+      {children}
+    </a>
+  );
+};
+
+const ArticleTable: NonNullable<Components["table"]> = ({
+  node,
+  children,
+  ...props
+}) => {
+  void node;
+
+  // Scrollable region: tabbable so keyboard readers can pan wide tables.
+  return (
+    <div className="table-scroll" role="region" aria-label="Table" tabIndex={0}>
+      <table {...props}>{children}</table>
+    </div>
   );
 };
 
@@ -88,6 +142,8 @@ export default function MarkdownContent({
         h2: createHeadingComponent("h2", headingIds),
         h3: createHeadingComponent("h3", headingIds),
         img: LazyArticleImage,
+        a: ArticleLink,
+        table: ArticleTable,
         pre: CodeBlock,
       }
     : undefined;
