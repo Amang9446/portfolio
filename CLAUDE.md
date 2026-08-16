@@ -8,7 +8,9 @@ a Supabase-backed admin dashboard that manages ALL site content.
 - Next.js 16 (App Router, Turbopack), React 19, TypeScript
 - Tailwind CSS v4 (CSS-first config in `globals.css`, no tailwind.config)
 - Supabase: Postgres + Auth + Storage (`@supabase/ssr` for cookies/session)
-- next-themes (light/dark toggle), react-markdown + remark-gfm, sonner toasts
+- Light/dark toggle is hand-rolled (`ui/theme-provider.tsx` + `ui/theme-script.tsx`) —
+  next-themes was dropped because its ThemeProvider is a client component
+- react-markdown + remark-gfm, sonner toasts
 - Deployed on Vercel; `vercel.json` cron hits `/api/ping` daily
 
 ## Commands
@@ -23,7 +25,10 @@ so the site renders without Supabase configured.
 
 - `src/lib/settings.ts` — hero/contact/SEO-metadata/skills/section-visibility (`site_settings` JSON-per-key + `skills` table; `sections` key hides homepage sections + blog)
 - `src/lib/projects.ts` — projects (falls back to config when table empty; rows with `visible=false` are filtered from the public list, but an all-hidden table does NOT re-trigger the static fallback)
-- `src/lib/posts.ts` — blog posts; `meta` jsonb holds per-post SEO overrides {title, description, keywords, ogImage}
+- `src/lib/posts.ts` — blog posts; `meta` jsonb holds per-post SEO overrides {title, description, keywords, ogImage}; `tags text[]` drives `/blog/tag/[tag]` archives (`getAllTags`/`getPostsByTag` filter the cached published list rather than querying again)
+- `src/lib/tags.ts` — tag normalize/slug helpers shared by admin, public pages, and `savePost`
+- `src/lib/structured-data.ts` — JSON-LD builders (BlogPosting/Blog/Person/WebSite/BreadcrumbList); always embed via `jsonLdScript()`, which escapes `<`
+- `src/lib/feed.ts` — RSS 2.0 for `/feed.xml`; `src/app/sitemap.ts` + `src/app/robots.ts` are the other discovery routes. All three gate on `sections.blog`
 - `src/lib/supabase/{client,server,public,config}.ts` — browser/server/public clients; `isSupabaseConfigured()` gates all DB calls
 - PERF-CRITICAL: public-page reads MUST use `createPublicClient()` (cookie-free). The cookie-bound server client calls `cookies()`, which silently opts the route out of static rendering/ISR and makes every visit hit Supabase live. Server client is for admin/auth paths only.
 - `supabase/schema.sql` — canonical schema, kept in sync with live DB (migrations applied via Supabase MCP)
@@ -60,6 +65,25 @@ Soft minimal, "precise, confident, calm" — context in `.impeccable.md`. Both t
 - Fonts: Schibsted Grotesk (display) + Albert Sans (body) + Geist Mono (labels/code), loaded in `layout.tsx`
 - OKLCH tokens in `globals.css`, neutrals tinted toward warm clay (~hue 40–75); accent `--primary`
 - Conventions: mono uppercase tracking-wide kickers, `max-w-5xl px-6` section wrapper, border-separated sections, `.reveal` staggered entrance (respects reduced motion), `.markdown` styles blog content
+
+### Article Markdown extensions
+
+The pipeline in `src/components/markdown/markdown-content.tsx` is shared by the
+public article and the admin split preview, so both always agree.
+
+- **Callouts**: `> [!NOTE|TIP|IMPORTANT|WARNING|CAUTION]`, optionally followed by a
+  custom title on the same line. `src/lib/remark-callouts.ts` tags the blockquote;
+  `markdown/callout.tsx` renders the label. Unmarked blockquotes are untouched, and
+  the raw `.md` endpoints keep the standard GFM syntax.
+- **Code fences**: ```` ```ts title="src/lib/posts.ts" {2,4-6} numbered ````. The meta
+  string survives to hast as `data.meta`; `src/lib/rehype-code-lines.ts` runs *after*
+  `rehype-highlight` and splits the output into `.code-line` spans (cloning any hljs
+  token that straddles a newline). Line numbers and highlighting both hang off those
+  spans. It removes the newline text nodes, so the copy button in `code-block.tsx`
+  rejoins lines explicitly — keep those two in sync.
+- **Image zoom**: `posts/article-lightbox.tsx` mounts once per article and promotes
+  the server-rendered `<img>`s to focusable buttons via one delegated listener, so
+  image count never adds client components. Images inside links are skipped.
 - Avoid: gradient text, glassmorphism, glow effects, card grids with icon-above-heading, pure black/white
 
 ## Pending / manual steps (dashboard-only, not exposed via MCP)

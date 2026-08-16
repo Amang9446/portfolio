@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createPublicClient } from "@/lib/supabase/public";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { postCacheTag, postsCacheTag } from "@/lib/cache";
+import { tagSlug } from "@/lib/tags";
 
 export interface PostMeta {
   title?: string;
@@ -24,6 +25,7 @@ export interface Post {
   like_count: number;
   published: boolean;
   published_at: string | null;
+  tags: string[];
   meta: PostMeta;
   created_at: string;
   updated_at: string;
@@ -31,40 +33,48 @@ export interface Post {
 
 export type PostSummary = Omit<Post, "content">;
 
-const postSummaryColumns =
-  "id, slug, title, excerpt, cover_image_url, cover_image_alt, show_on_home, view_count, published, published_at, meta, created_at, updated_at";
+export interface TagSummary {
+  slug: string;
+  label: string;
+  count: number;
+}
 
-function withLikeCount<T>(post: T) {
-  const likeCount = Number(
-    (post as T & { like_count?: number }).like_count,
-  );
+const postSummaryColumns =
+  "id, slug, title, excerpt, cover_image_url, cover_image_alt, show_on_home, view_count, published, published_at, tags, meta, created_at, updated_at";
+
+function normalizePost<T>(post: T) {
+  const row = post as T & { like_count?: number; tags?: unknown };
+  const likeCount = Number(row.like_count);
+
   return {
     ...post,
     like_count: Number.isFinite(likeCount) ? Math.max(0, likeCount) : 0,
+    tags: Array.isArray(row.tags)
+      ? row.tags.filter((tag): tag is string => typeof tag === "string")
+      : [],
   };
 }
 
 async function fetchPublishedPosts(homeOnly: boolean): Promise<PostSummary[]> {
   const supabase = createPublicClient();
-  let query = supabase
+  const query = supabase
     .from("posts")
     .select(postSummaryColumns)
     .eq("published", true)
     .order("published_at", { ascending: false });
 
-  if (homeOnly) {
-    query = query.eq("show_on_home", true);
-  }
+  const { data, error } = await (homeOnly
+    ? query.eq("show_on_home", true)
+    : query);
 
-  const { data, error } = await query;
   if (error) {
     console.error("Failed to load posts:", error.message);
     return [];
   }
   return (
-    (data as unknown as Array<Omit<PostSummary, "like_count">> | null)?.map(
-      withLikeCount,
-    ) ?? []
+    (data as unknown as Array<
+      Omit<PostSummary, "like_count" | "tags">
+    > | null)?.map(normalizePost) ?? []
   );
 }
 
@@ -80,7 +90,7 @@ async function fetchPublishedPostBySlug(slug: string): Promise<Post | null> {
     console.error("Failed to load post:", error.message);
     return null;
   }
-  return data ? withLikeCount(data as unknown as Post) : null;
+  return data ? normalizePost(data as unknown as Post) : null;
 }
 
 async function fetchPublishedPostsWithContent(): Promise<Post[]> {
@@ -94,7 +104,7 @@ async function fetchPublishedPostsWithContent(): Promise<Post[]> {
     console.error("Failed to load posts:", error.message);
     return [];
   }
-  return (data ?? []).map((post) => withLikeCount(post as Post));
+  return (data ?? []).map((post) => normalizePost(post as Post));
 }
 
 // List pages do not need article bodies, so both queries skip `content`.
@@ -125,6 +135,40 @@ export async function getPostBySlug(slug: string): Promise<Post | null> {
   )();
 }
 
+/**
+ * Every tag in use, most-used first, then alphabetical.
+ *
+ * Derived from the already-cached published list rather than its own query —
+ * the post count here is small, and this keeps the free-tier read count flat.
+ */
+export async function getAllTags(): Promise<TagSummary[]> {
+  const posts = await getPublishedPosts();
+  const bySlug = new Map<string, TagSummary>();
+
+  for (const post of posts) {
+    // Cached payloads written before `tags` existed have no such field.
+    for (const tag of post.tags ?? []) {
+      const slug = tagSlug(tag);
+      if (!slug) continue;
+
+      const existing = bySlug.get(slug);
+      if (existing) existing.count += 1;
+      else bySlug.set(slug, { slug, label: tag, count: 1 });
+    }
+  }
+
+  return [...bySlug.values()].sort(
+    (a, b) => b.count - a.count || a.label.localeCompare(b.label),
+  );
+}
+
+export async function getPostsByTag(slug: string): Promise<PostSummary[]> {
+  const posts = await getPublishedPosts();
+  return posts.filter((post) =>
+    (post.tags ?? []).some((tag) => tagSlug(tag) === slug),
+  );
+}
+
 export async function getPublishedPostsWithContent(): Promise<Post[]> {
   if (!isSupabaseConfigured()) return [];
   return unstable_cache(
@@ -145,7 +189,7 @@ export async function getAllPosts(): Promise<Post[]> {
     console.error("Failed to load posts:", error.message);
     return [];
   }
-  return (data ?? []).map(withLikeCount) as Post[];
+  return (data ?? []).map(normalizePost) as Post[];
 }
 
 export async function getPostById(id: string): Promise<Post | null> {
@@ -160,5 +204,5 @@ export async function getPostById(id: string): Promise<Post | null> {
     console.error("Failed to load post:", error.message);
     return null;
   }
-  return data ? withLikeCount(data) : null;
+  return data ? normalizePost(data) : null;
 }

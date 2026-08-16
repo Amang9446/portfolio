@@ -62,6 +62,11 @@
   --syntax-title: oklch(0.44 0.1 235);
   --syntax-type: oklch(0.48 0.1 70);
   --syntax-meta: oklch(0.48 0.09 330);
+  --callout-note: oklch(0.47 0.1 235);
+  --callout-tip: oklch(0.44 0.095 150);
+  --callout-important: oklch(0.47 0.11 300);
+  --callout-warning: oklch(0.5 0.1 70);
+  --callout-caution: oklch(0.51 0.15 25);
 }
 
 .dark {
@@ -90,6 +95,11 @@
   --syntax-title: oklch(0.79 0.09 235);
   --syntax-type: oklch(0.8 0.09 75);
   --syntax-meta: oklch(0.78 0.09 330);
+  --callout-note: oklch(0.78 0.09 235);
+  --callout-tip: oklch(0.78 0.09 150);
+  --callout-important: oklch(0.78 0.09 300);
+  --callout-warning: oklch(0.81 0.09 75);
+  --callout-caution: oklch(0.72 0.13 25);
 }
 
 @layer base {
@@ -276,6 +286,52 @@
 .markdown blockquote > * + * {
   margin-top: 0.75em;
 }
+/* Callouts (`> [!NOTE]`) — tagged by remark-callouts, one accent per kind */
+.markdown blockquote.callout {
+  --callout-accent: var(--callout-note);
+  border-left-color: var(--callout-accent);
+  border-radius: var(--radius-sm);
+  background: oklch(from var(--callout-accent) l c h / 7%);
+  padding: 1rem 1.15rem;
+  color: var(--foreground);
+  font-size: 1em;
+}
+.markdown blockquote.callout[data-callout="tip"] {
+  --callout-accent: var(--callout-tip);
+}
+.markdown blockquote.callout[data-callout="important"] {
+  --callout-accent: var(--callout-important);
+}
+.markdown blockquote.callout[data-callout="warning"] {
+  --callout-accent: var(--callout-warning);
+}
+.markdown blockquote.callout[data-callout="caution"] {
+  --callout-accent: var(--callout-caution);
+}
+.markdown .callout-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.6em;
+  color: var(--callout-accent);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.markdown .callout-icon {
+  width: 0.95rem;
+  height: 0.95rem;
+  flex-shrink: 0;
+}
+.markdown .callout a {
+  color: var(--callout-accent);
+}
+.markdown .callout code {
+  background: oklch(from var(--callout-accent) l c h / 10%);
+  border-color: oklch(from var(--callout-accent) l c h / 22%);
+}
 .markdown code {
   font-family: var(--font-mono);
   font-size: 0.85em;
@@ -324,6 +380,57 @@
   margin: 0;
   border: 0;
   border-radius: 0;
+}
+/* A `title="…"` fence puts the filename first and demotes the language */
+.markdown .code-title {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  min-width: 0;
+  color: var(--foreground);
+}
+.markdown .code-title-language {
+  color: var(--muted-foreground);
+  font-size: 0.92em;
+}
+/*
+ * Line numbers and line highlighting, both driven by the per-line elements
+ * rehype-code-lines emits. The newline text nodes are gone, so the copy button
+ * rejoins lines explicitly — see code-block.tsx.
+ */
+.markdown code.code-numbered {
+  counter-reset: code-line;
+  display: block;
+}
+.markdown .code-line {
+  display: block;
+  counter-increment: code-line;
+  border-left: 2px solid transparent;
+  padding-left: 0.5rem;
+}
+.markdown code.code-numbered .code-line::before {
+  content: counter(code-line);
+  display: inline-block;
+  width: 1.75rem;
+  margin-right: 1.1rem;
+  color: var(--muted-foreground);
+  opacity: 0.55;
+  text-align: right;
+  user-select: none;
+}
+.markdown .code-line[data-highlighted] {
+  background: oklch(from var(--primary) l c h / 11%);
+  border-left-color: var(--primary);
+}
+.markdown .code-line[data-highlighted]::before {
+  color: var(--primary);
+  opacity: 1;
+}
+/* Wrapped lines hang under the code, clear of the number gutter
+   (1.75rem number + 1.1rem gap) */
+.markdown pre.code-wrap code.code-numbered .code-line {
+  padding-left: 3.35rem;
+  text-indent: -2.85rem;
 }
 .markdown .hljs-comment,
 .markdown .hljs-quote {
@@ -386,6 +493,18 @@
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
   margin-inline: auto;
+}
+/* Applied by article-lightbox.tsx once the zoom handler is live */
+.markdown img.article-image-zoom {
+  cursor: zoom-in;
+  transition: border-color 150ms ease;
+}
+.markdown img.article-image-zoom:hover {
+  border-color: oklch(from var(--primary) l c h / 45%);
+}
+.markdown img.article-image-zoom:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
 }
 .markdown .article-figure {
   display: block;
@@ -509,7 +628,8 @@
   .markdown pre,
   .markdown blockquote,
   .markdown table,
-  .markdown .article-figure {
+  .markdown .article-figure,
+  .markdown .callout {
     break-inside: avoid;
   }
   .markdown a {

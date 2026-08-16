@@ -15,6 +15,7 @@ import {
   revalidateArticles,
   revalidatePublic,
 } from "@/lib/cache";
+import { parseTagsField } from "@/lib/tags";
 
 async function requireUser() {
   const supabase = await createClient();
@@ -149,6 +150,7 @@ export async function savePost(formData: FormData) {
     cover_image_url: String(formData.get("cover_image_url") ?? "").trim(),
     cover_image_alt: String(formData.get("cover_image_alt") ?? "").trim(),
     show_on_home: formData.get("show_on_home") === "on",
+    tags: parseTagsField(String(formData.get("tags") ?? "")),
     published,
     meta: {
       title: String(formData.get("meta_title") ?? "").trim(),

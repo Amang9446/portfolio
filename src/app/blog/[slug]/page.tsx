@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import NavBar from "@/components/layout/nav-bar";
 import Footer from "@/components/layout/Footer";
 import MarkdownContent from "@/components/markdown/markdown-content";
+import ArticleLightbox from "@/components/posts/article-lightbox";
 import ArticleReadingProgress from "@/components/posts/article-reading-progress";
 import BackToTop from "@/components/posts/back-to-top";
 import ArticleMarkdownButton from "@/components/posts/article-markdown-button";
@@ -13,11 +14,17 @@ import PostCover from "@/components/posts/post-cover";
 import PostGrid from "@/components/posts/post-grid";
 import PostLikeButton from "@/components/posts/post-like-button";
 import PostViewTracker from "@/components/posts/post-view-tracker";
+import TagList from "@/components/posts/tag-list";
 import { getArticleReadingData } from "@/lib/article-reading";
 import { getPostBySlug, getPublishedPosts } from "@/lib/posts";
 import { getSiteContent } from "@/lib/settings";
 import { absoluteUrl } from "@/lib/site-url";
 import { SOCIAL_IMAGE_SIZE, socialImageUrl } from "@/lib/social-image";
+import {
+  blogPostingJsonLd,
+  breadcrumbJsonLd,
+  jsonLdScript,
+} from "@/lib/structured-data";
 
 export const revalidate = 60;
 
@@ -120,7 +127,21 @@ export default async function BlogPostPage({ params }: PageProps) {
 
   return (
     <main className="flex min-h-screen flex-col bg-background text-foreground">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLdScript([
+            blogPostingJsonLd(post, site),
+            breadcrumbJsonLd([
+              { name: "Home", path: "/" },
+              { name: "Blog", path: "/blog" },
+              { name: post.title, path: `/blog/${encodeURIComponent(post.slug)}` },
+            ]),
+          ]),
+        }}
+      />
       <ArticleReadingProgress contentId="article-content" />
+      <ArticleLightbox contentId="article-content" />
       <NavBar socialLinks={site.contact.socialLinks} sections={site.sections} />
       <article className="mx-auto w-full max-w-5xl flex-1 px-6 py-20 md:py-28">
         <div className="mx-auto max-w-3xl">
@@ -169,6 +190,7 @@ export default async function BlogPostPage({ params }: PageProps) {
               <ArticleShareButton title={post.title} url={articleUrl} />
             </span>
           </div>
+          <TagList tags={post.tags} className="mt-4" />
         </div>
 
         <PostCover

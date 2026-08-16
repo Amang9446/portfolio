@@ -21,6 +21,7 @@ create table if not exists public.posts (
     constraint posts_like_count_nonnegative check (like_count >= 0),
   published boolean not null default false,
   published_at timestamptz,
+  tags text[] not null default '{}',
   -- Per-post SEO overrides: {title, description, keywords, ogImage}
   meta jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
@@ -33,7 +34,8 @@ alter table public.posts
   add column if not exists cover_image_alt text not null default '',
   add column if not exists show_on_home boolean not null default false,
   add column if not exists view_count bigint not null default 0,
-  add column if not exists like_count bigint not null default 0;
+  add column if not exists like_count bigint not null default 0,
+  add column if not exists tags text[] not null default '{}';
 
 do $$
 begin
@@ -66,6 +68,13 @@ end $$;
 create index if not exists posts_home_published_at_idx
   on public.posts (published_at desc)
   where published = true and show_on_home = true;
+
+-- Unused today: getPostsByTag filters the already-cached published list in
+-- memory rather than querying per tag, which keeps the free-tier read count
+-- flat. Kept for when the post count outgrows that and archives query
+-- `tags @> array[...]` directly.
+create index if not exists posts_tags_idx
+  on public.posts using gin (tags);
 
 -- ---------------------------------------------------------------------------
 -- Projects

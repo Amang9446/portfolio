@@ -26,6 +26,7 @@ import {
   checkPostSlugAvailability,
 } from "@/app/admin/actions";
 import MarkdownContent from "@/components/markdown/markdown-content";
+import TagInput from "@/components/admin/tag-input";
 import { createClient } from "@/lib/supabase/client";
 import PostCover from "@/components/posts/post-cover";
 import type { Post } from "@/lib/posts";
@@ -138,6 +139,7 @@ export default function PostForm({ post, error }: PostFormProps) {
     status: SlugStatus;
   }>({ slug: "", status: "idle" });
   const [excerpt, setExcerpt] = useState(post?.excerpt ?? "");
+  const [tags, setTags] = useState<string[]>(post?.tags ?? []);
   const [content, setContent] = useState(post?.content ?? "");
   const [coverImageUrl, setCoverImageUrl] = useState(
     post?.cover_image_url ?? "",
@@ -246,7 +248,8 @@ export default function PostForm({ post, error }: PostFormProps) {
     excerpt !== (post?.excerpt ?? "") ||
     content !== (post?.content ?? "") ||
     coverImageUrl !== (post?.cover_image_url ?? "") ||
-    coverImageAlt !== (post?.cover_image_alt ?? "");
+    coverImageAlt !== (post?.cover_image_alt ?? "") ||
+    tags.join(",") !== (post?.tags ?? []).join(",");
   const justSavedRef = useRef(false);
   useEffect(() => {
     if (!dirty) return;
@@ -959,6 +962,10 @@ export default function PostForm({ post, error }: PostFormProps) {
           className={inputClass}
         />
       </label>
+
+      <div className="mt-5">
+        <TagInput name="tags" value={tags} onChange={setTags} />
+      </div>
 
       <section className="mt-5 rounded-md border border-border p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">

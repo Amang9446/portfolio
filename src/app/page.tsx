@@ -8,6 +8,7 @@ import Skills from "@/components/sections/Skills";
 import Writing from "@/components/sections/Writing";
 import Contact from "@/components/sections/Contact";
 import Footer from "@/components/layout/Footer";
+import { homeJsonLd, jsonLdScript } from "@/lib/structured-data";
 
 export const revalidate = 60;
 
@@ -20,6 +21,10 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen bg-background text-foreground">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(homeJsonLd(site)) }}
+      />
       <NavBar socialLinks={site.contact.socialLinks} sections={site.sections} />
       <Hero config={site.hero} />
       {site.sections.projects && <Projects projects={projects} />}

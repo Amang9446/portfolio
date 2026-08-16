@@ -8,7 +8,10 @@ import {
   getArticleReadingData,
   type ArticleHeading,
 } from "@/lib/article-reading";
+import rehypeCodeLines from "@/lib/rehype-code-lines";
+import remarkCallouts from "@/lib/remark-callouts";
 import { siteUrl } from "@/lib/site-url";
+import Callout from "./callout";
 import CodeBlock from "./code-block";
 
 interface MarkdownContentProps {
@@ -41,6 +44,11 @@ const LazyArticleImage: NonNullable<Components["img"]> = ({
 
   // Article images are below the cover, so they should not compete with the
   // page's largest-contentful-paint image during the initial load.
+  //
+  // Zooming is layered on at runtime by article-lightbox.tsx, which promotes
+  // these to focusable buttons. Deliberately not marked up as a <button> here:
+  // a linked image would then nest a button inside an <a>, and the affordance
+  // would be advertised even where the JS that implements it never loads.
   const image = (
     // eslint-disable-next-line @next/next/no-img-element
     <img {...props} alt={alt ?? ""} loading="lazy" decoding="async" />
@@ -145,12 +153,13 @@ export default function MarkdownContent({
         a: ArticleLink,
         table: ArticleTable,
         pre: CodeBlock,
+        blockquote: Callout,
       }
     : undefined;
 
   return (
     <ReactMarkdown
-      remarkPlugins={[remarkGfm]}
+      remarkPlugins={[remarkGfm, remarkCallouts]}
       rehypePlugins={[
         [
           rehypeHighlight,
@@ -160,6 +169,8 @@ export default function MarkdownContent({
             plainText: ["text", "txt"],
           },
         ],
+        // Must follow rehype-highlight: it splits the highlighted output.
+        rehypeCodeLines,
       ]}
       urlTransform={urlTransform}
       components={components}
