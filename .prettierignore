@@ -1,0 +1,15 @@
+.next
+node_modules
+out
+build
+package-lock.json
+*.tsbuildinfo
+next-env.d.ts
+
+# Rewritten by `next dev`, and its nested code-fence examples do not survive
+# Prettier's markdown formatter.
+CLAUDE.md
+
+# Documents the code-fence syntax using nested fences, which Prettier rewrites
+# into something that no longer demonstrates the syntax.
+README.md

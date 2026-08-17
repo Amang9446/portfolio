@@ -1,0 +1,35 @@
+# Supabase CLI project config.
+#
+# With this file present, `supabase/migrations/` is a real migration history:
+#
+#   supabase link --project-ref <your-ref>   # once
+#   supabase db push                         # apply pending migrations
+#   supabase start                           # local Postgres + Studio
+#   supabase migration new <name>            # scaffold the next migration
+#
+# Forking this repo? Change `project_id` to your own project ref, or just paste
+# supabase/schema.sql into the SQL editor and skip the CLI entirely.
+project_id = "nasejsbkkaonqcfkxljf"
+
+[db]
+# Match the remote: Supabase projects currently run Postgres 17.
+major_version = 17
+
+[db.migrations]
+schema_paths = []
+
+[storage]
+enabled = true
+# The `media` bucket holds article banners and inline images. Supabase's free
+# tier caps uploads at 50 MB, which is what the admin editor enforces.
+file_size_limit = "50MiB"
+
+[auth]
+# Set this to your production origin before deploying, so password-reset and
+# confirmation emails link to the right place.
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000"]
+
+[auth.email]
+# The admin account is created by hand in the dashboard; nothing self-serves.
+enable_signup = false

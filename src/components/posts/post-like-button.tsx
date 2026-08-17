@@ -15,7 +15,10 @@ interface LikeState {
   like_count: number;
 }
 
-const visitorIdStorageKey = "aman-portfolio-like-visitor-id";
+const visitorIdStorageKey = "portfolio-like-visitor-id";
+// Superseded key. Still read (once, then migrated) so existing readers keep
+// the likes they have already given instead of silently being able to re-like.
+const legacyVisitorIdStorageKey = "aman-portfolio-like-visitor-id";
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 let inMemoryVisitorId: string | null = null;
@@ -28,6 +31,14 @@ function getVisitorId() {
     if (storedId && uuidPattern.test(storedId)) {
       inMemoryVisitorId = storedId;
       return storedId;
+    }
+
+    const legacyId = window.localStorage.getItem(legacyVisitorIdStorageKey);
+    if (legacyId && uuidPattern.test(legacyId)) {
+      inMemoryVisitorId = legacyId;
+      window.localStorage.setItem(visitorIdStorageKey, legacyId);
+      window.localStorage.removeItem(legacyVisitorIdStorageKey);
+      return legacyId;
     }
   } catch {
     // A privacy mode may block storage. The in-memory fallback still lets the
@@ -133,14 +144,11 @@ export default function PostLikeButton({
     setError("");
 
     const supabase = createClient();
-    const { data, error: toggleError } = await supabase.rpc(
-      "set_post_like",
-      {
-        target_post_id: postId,
-        target_visitor_id: getVisitorId(),
-        target_liked: nextLiked,
-      },
-    );
+    const { data, error: toggleError } = await supabase.rpc("set_post_like", {
+      target_post_id: postId,
+      target_visitor_id: getVisitorId(),
+      target_liked: nextLiked,
+    });
     const nextState = parseLikeState(data);
 
     if (toggleError || !nextState) {

@@ -15,6 +15,8 @@ import {
   revalidateArticles,
   revalidatePublic,
 } from "@/lib/cache";
+import { slugify } from "@/lib/markdown-commands";
+import { postMediaPaths } from "@/lib/media";
 import { parseTagsField } from "@/lib/tags";
 
 async function requireUser() {
@@ -38,25 +40,6 @@ async function loadPostSlugs(
     return [];
   }
   return (data ?? []).map((row) => row.slug).filter(Boolean);
-}
-
-async function loadPostSlugById(
-  supabase: Awaited<ReturnType<typeof requireUser>>,
-  id: string,
-) {
-  const { data, error } = await supabase
-    .from("posts")
-    .select("slug")
-    .eq("id", id)
-    .maybeSingle();
-  if (error) {
-    console.error(
-      "Failed to load post slug for cache invalidation:",
-      error.message,
-    );
-    return null;
-  }
-  return data?.slug ?? null;
 }
 
 // ---------------------------------------------------------------------------
@@ -178,9 +161,7 @@ export async function savePost(formData: FormData) {
       .eq("id", id)
       .maybeSingle();
     if (existing.error) {
-      redirect(
-        adminErrorUrl(`/admin/posts/${id}`, existing.error.message),
-      );
+      redirect(adminErrorUrl(`/admin/posts/${id}`, existing.error.message));
     }
     previousSlug = existing.data?.slug ?? null;
     const published_at = published
@@ -285,11 +266,46 @@ export async function deletePost(formData: FormData) {
   if (!id) {
     redirect(adminErrorUrl("/admin/posts", "Missing post ID"));
   }
-  const slug = await loadPostSlugById(supabase, id);
+
+  // Read the body before deleting the row — it is the only record of which
+  // uploads belong to this post.
+  const { data: existing, error: loadError } = await supabase
+    .from("posts")
+    .select("slug, content, cover_image_url")
+    .eq("id", id)
+    .maybeSingle();
+  if (loadError) {
+    // Not fatal: the delete can still proceed, but the cache invalidation
+    // below has to fall back to purging every article route.
+    console.error(
+      "Failed to load post before delete; media cleanup skipped:",
+      loadError.message,
+    );
+  }
+  const slug = existing?.slug ?? null;
+
   const { error } = await supabase.from("posts").delete().eq("id", id);
   if (error) {
     redirect(adminErrorUrl("/admin/posts", error.message));
   }
+
+  // Best-effort: the post is already gone, so a storage failure here should
+  // leave orphaned files rather than a confusing error on a completed delete.
+  if (existing) {
+    const paths = postMediaPaths(existing);
+    if (paths.length > 0) {
+      const { error: storageError } = await supabase.storage
+        .from("media")
+        .remove(paths);
+      if (storageError) {
+        console.error(
+          "Post deleted, but its media could not be removed:",
+          storageError.message,
+        );
+      }
+    }
+  }
+
   revalidatePublic();
   if (slug) {
     revalidateArticle(slug);
@@ -302,11 +318,7 @@ export async function deletePost(formData: FormData) {
 // ---------------------------------------------------------------------------
 // Site content (hero, contact, skills, SEO)
 // ---------------------------------------------------------------------------
-async function upsertSetting(
-  key: string,
-  value: unknown,
-  notice: AdminNotice,
-) {
+async function upsertSetting(key: string, value: unknown, notice: AdminNotice) {
   const supabase = await requireUser();
   const { error } = await supabase
     .from("site_settings")
@@ -334,8 +346,16 @@ export async function saveHero(formData: FormData) {
 
 export async function saveContact(formData: FormData) {
   const socials = [
-    { name: "GitHub", icon: "github", url: String(formData.get("github") ?? "").trim() },
-    { name: "LinkedIn", icon: "linkedin", url: String(formData.get("linkedin") ?? "").trim() },
+    {
+      name: "GitHub",
+      icon: "github",
+      url: String(formData.get("github") ?? "").trim(),
+    },
+    {
+      name: "LinkedIn",
+      icon: "linkedin",
+      url: String(formData.get("linkedin") ?? "").trim(),
+    },
     { name: "X", icon: "x", url: String(formData.get("x") ?? "").trim() },
   ].filter((s) => s.url.length > 0);
 
@@ -362,6 +382,10 @@ export async function saveMeta(formData: FormData) {
         .split(",")
         .map((k) => k.trim())
         .filter(Boolean),
+      // Stored bare; `twitterCreator()` adds the @ where the tag needs it.
+      twitterHandle: String(formData.get("twitter_handle") ?? "")
+        .trim()
+        .replace(/^@/, ""),
     },
     "metadata-saved",
   );
@@ -428,6 +452,40 @@ export async function saveSkills(formData: FormData) {
 // ---------------------------------------------------------------------------
 // Projects
 // ---------------------------------------------------------------------------
+
+/**
+ * A slug for a new project, unique against the ones already stored.
+ *
+ * `projects.slug` is NOT NULL and uniquely indexed (see the
+ * add_project_case_studies migration), but the admin form has no slug field —
+ * so it is derived here from the title, with a numeric suffix on collision.
+ */
+async function uniqueProjectSlug(
+  supabase: Awaited<ReturnType<typeof requireUser>>,
+  title: string,
+) {
+  const base = slugify(title) || "project";
+
+  const { data, error } = await supabase
+    .from("projects")
+    .select("slug")
+    .like("slug", `${base}%`);
+
+  // Fail open: a unique-violation on insert is a clearer error than a wrong
+  // slug, and the caller surfaces it.
+  if (error) {
+    console.error("Failed to check project slugs:", error.message);
+    return base;
+  }
+
+  const taken = new Set((data ?? []).map((row) => row.slug));
+  if (!taken.has(base)) return base;
+
+  let suffix = 2;
+  while (taken.has(`${base}-${suffix}`)) suffix += 1;
+  return `${base}-${suffix}`;
+}
+
 export async function saveProject(formData: FormData) {
   const supabase = await requireUser();
 
@@ -453,9 +511,15 @@ export async function saveProject(formData: FormData) {
     );
   }
 
+  // `projects.slug` is NOT NULL with no default, so an insert must supply one.
+  // Existing rows keep the slug they already have — changing it on every title
+  // edit would break any URL already pointing at the project.
   const { error } = id
     ? await supabase.from("projects").update(project).eq("id", id)
-    : await supabase.from("projects").insert(project);
+    : await supabase.from("projects").insert({
+        ...project,
+        slug: await uniqueProjectSlug(supabase, project.title),
+      });
 
   if (error) {
     redirect(adminErrorUrl(`/admin/projects/${id || "new"}`, error.message));

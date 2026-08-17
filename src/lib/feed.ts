@@ -45,7 +45,9 @@ function feedItem(post: PostSummary) {
     lines.push(`      <pubDate>${pubDate}</pubDate>`);
   }
   if (post.excerpt) {
-    lines.push(`      <description>${escapeXml(oneLine(post.excerpt))}</description>`);
+    lines.push(
+      `      <description>${escapeXml(oneLine(post.excerpt))}</description>`,
+    );
   }
   for (const tag of post.tags) {
     lines.push(`      <category>${escapeXml(tag)}</category>`);

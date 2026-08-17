@@ -44,8 +44,8 @@ export default async function SiteContentPage({ searchParams }: PageProps) {
     <div className="max-w-2xl">
       <h1 className="text-2xl font-semibold">Site content</h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        Everything on the homepage outside of projects. Changes go live within
-        a minute.
+        Everything on the homepage outside of projects. Changes go live within a
+        minute.
       </p>
 
       {error && (
@@ -79,7 +79,9 @@ export default async function SiteContentPage({ searchParams }: PageProps) {
               </label>
             ))}
           </div>
-          <button type="submit" className={saveButtonClass}>Save sections</button>
+          <button type="submit" className={saveButtonClass}>
+            Save sections
+          </button>
         </form>
       </section>
 
@@ -90,28 +92,69 @@ export default async function SiteContentPage({ searchParams }: PageProps) {
         </h2>
         <form action={saveHero} className="mt-4 flex flex-col gap-4">
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="flex flex-col gap-1.5 text-sm" title="Your name, the big heading">
+            <label
+              className="flex flex-col gap-1.5 text-sm"
+              title="Your name, the big heading"
+            >
               <span className="text-muted-foreground">Name</span>
-              <input name="name" required defaultValue={hero.name} className={inputClass} />
+              <input
+                name="name"
+                required
+                defaultValue={hero.name}
+                className={inputClass}
+              />
             </label>
-            <label className="flex flex-col gap-1.5 text-sm" title="Role line under your name">
+            <label
+              className="flex flex-col gap-1.5 text-sm"
+              title="Role line under your name"
+            >
               <span className="text-muted-foreground">Title</span>
-              <input name="title" required defaultValue={hero.title} className={inputClass} />
+              <input
+                name="title"
+                required
+                defaultValue={hero.title}
+                className={inputClass}
+              />
             </label>
           </div>
-          <label className="flex flex-col gap-1.5 text-sm" title="Small uppercase line above your name">
+          <label
+            className="flex flex-col gap-1.5 text-sm"
+            title="Small uppercase line above your name"
+          >
             <span className="text-muted-foreground">Kicker</span>
-            <input name="subtitle" defaultValue={hero.subtitle} className={inputClass} />
+            <input
+              name="subtitle"
+              defaultValue={hero.subtitle}
+              className={inputClass}
+            />
           </label>
-          <label className="flex flex-col gap-1.5 text-sm" title="Intro paragraph under the heading">
+          <label
+            className="flex flex-col gap-1.5 text-sm"
+            title="Intro paragraph under the heading"
+          >
             <span className="text-muted-foreground">Description</span>
-            <textarea name="description" rows={3} defaultValue={hero.description} className={textareaClass} />
+            <textarea
+              name="description"
+              rows={3}
+              defaultValue={hero.description}
+              className={textareaClass}
+            />
           </label>
-          <label className="flex flex-col gap-1.5 text-sm" title="Profile photo URL">
+          <label
+            className="flex flex-col gap-1.5 text-sm"
+            title="Profile photo URL"
+          >
             <span className="text-muted-foreground">Photo URL</span>
-            <input name="image" type="url" defaultValue={hero.image} className={`${inputClass} font-mono`} />
+            <input
+              name="image"
+              type="url"
+              defaultValue={hero.image}
+              className={`${inputClass} font-mono`}
+            />
           </label>
-          <button type="submit" className={saveButtonClass}>Save hero</button>
+          <button type="submit" className={saveButtonClass}>
+            Save hero
+          </button>
         </form>
       </section>
 
@@ -121,15 +164,33 @@ export default async function SiteContentPage({ searchParams }: PageProps) {
           Skills
         </h2>
         <form action={saveSkills} className="mt-4 flex flex-col gap-4">
-          <label className="flex flex-col gap-1.5 text-sm" title="Comma-separated, shown in this order">
+          <label
+            className="flex flex-col gap-1.5 text-sm"
+            title="Comma-separated, shown in this order"
+          >
             <span className="text-muted-foreground">Technologies</span>
-            <textarea name="tech" rows={2} defaultValue={skillList("tech")} className={textareaClass} />
+            <textarea
+              name="tech"
+              rows={2}
+              defaultValue={skillList("tech")}
+              className={textareaClass}
+            />
           </label>
-          <label className="flex flex-col gap-1.5 text-sm" title="Comma-separated, shown in this order">
+          <label
+            className="flex flex-col gap-1.5 text-sm"
+            title="Comma-separated, shown in this order"
+          >
             <span className="text-muted-foreground">Tools</span>
-            <textarea name="tools" rows={2} defaultValue={skillList("tools")} className={textareaClass} />
+            <textarea
+              name="tools"
+              rows={2}
+              defaultValue={skillList("tools")}
+              className={textareaClass}
+            />
           </label>
-          <button type="submit" className={saveButtonClass}>Save skills</button>
+          <button type="submit" className={saveButtonClass}>
+            Save skills
+          </button>
         </form>
       </section>
 
@@ -140,34 +201,83 @@ export default async function SiteContentPage({ searchParams }: PageProps) {
         </h2>
         <form action={saveContact} className="mt-4 flex flex-col gap-4">
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="flex flex-col gap-1.5 text-sm" title="Public contact email shown in the Contact section">
+            <label
+              className="flex flex-col gap-1.5 text-sm"
+              title="Public contact email shown in the Contact section"
+            >
               <span className="text-muted-foreground">Email</span>
-              <input name="email" type="email" required defaultValue={contact.email} className={inputClass} />
+              <input
+                name="email"
+                type="email"
+                required
+                defaultValue={contact.email}
+                className={inputClass}
+              />
             </label>
-            <label className="flex flex-col gap-1.5 text-sm" title="Status word next to the pulsing dot, e.g. Available">
+            <label
+              className="flex flex-col gap-1.5 text-sm"
+              title="Status word next to the pulsing dot, e.g. Available"
+            >
               <span className="text-muted-foreground">Availability</span>
-              <input name="availability" defaultValue={contact.availability} className={inputClass} />
+              <input
+                name="availability"
+                defaultValue={contact.availability}
+                className={inputClass}
+              />
             </label>
           </div>
-          <label className="flex flex-col gap-1.5 text-sm" title="Small line under the heading, e.g. response time">
+          <label
+            className="flex flex-col gap-1.5 text-sm"
+            title="Small line under the heading, e.g. response time"
+          >
             <span className="text-muted-foreground">Response note</span>
-            <input name="responseTime" defaultValue={contact.responseTime} className={inputClass} />
+            <input
+              name="responseTime"
+              defaultValue={contact.responseTime}
+              className={inputClass}
+            />
           </label>
           <div className="grid gap-4 md:grid-cols-3">
-            <label className="flex flex-col gap-1.5 text-sm" title="Leave empty to hide the icon">
+            <label
+              className="flex flex-col gap-1.5 text-sm"
+              title="Leave empty to hide the icon"
+            >
               <span className="text-muted-foreground">GitHub URL</span>
-              <input name="github" type="url" defaultValue={social("github")} className={`${inputClass} font-mono`} />
+              <input
+                name="github"
+                type="url"
+                defaultValue={social("github")}
+                className={`${inputClass} font-mono`}
+              />
             </label>
-            <label className="flex flex-col gap-1.5 text-sm" title="Leave empty to hide the icon">
+            <label
+              className="flex flex-col gap-1.5 text-sm"
+              title="Leave empty to hide the icon"
+            >
               <span className="text-muted-foreground">LinkedIn URL</span>
-              <input name="linkedin" type="url" defaultValue={social("linkedin")} className={`${inputClass} font-mono`} />
+              <input
+                name="linkedin"
+                type="url"
+                defaultValue={social("linkedin")}
+                className={`${inputClass} font-mono`}
+              />
             </label>
-            <label className="flex flex-col gap-1.5 text-sm" title="Leave empty to hide the icon">
+            <label
+              className="flex flex-col gap-1.5 text-sm"
+              title="Leave empty to hide the icon"
+            >
               <span className="text-muted-foreground">X URL</span>
-              <input name="x" type="url" defaultValue={social("x")} className={`${inputClass} font-mono`} />
+              <input
+                name="x"
+                type="url"
+                defaultValue={social("x")}
+                className={`${inputClass} font-mono`}
+              />
             </label>
           </div>
-          <button type="submit" className={saveButtonClass}>Save contact</button>
+          <button type="submit" className={saveButtonClass}>
+            Save contact
+          </button>
         </form>
       </section>
 
@@ -177,25 +287,70 @@ export default async function SiteContentPage({ searchParams }: PageProps) {
           SEO &amp; metadata
         </h2>
         <form action={saveMeta} className="mt-4 flex flex-col gap-4">
-          <label className="flex flex-col gap-1.5 text-sm" title="Browser tab title and search result headline">
+          <label
+            className="flex flex-col gap-1.5 text-sm"
+            title="Browser tab title and search result headline"
+          >
             <span className="text-muted-foreground">Site title</span>
-            <input name="title" required defaultValue={metadata.title} className={inputClass} />
+            <input
+              name="title"
+              required
+              defaultValue={metadata.title}
+              className={inputClass}
+            />
           </label>
-          <label className="flex flex-col gap-1.5 text-sm" title="Search result and link preview description">
+          <label
+            className="flex flex-col gap-1.5 text-sm"
+            title="Search result and link preview description"
+          >
             <span className="text-muted-foreground">Site description</span>
-            <textarea name="description" rows={2} defaultValue={metadata.description} className={textareaClass} />
+            <textarea
+              name="description"
+              rows={2}
+              defaultValue={metadata.description}
+              className={textareaClass}
+            />
           </label>
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="flex flex-col gap-1.5 text-sm" title="Shown in the footer copyright">
+            <label
+              className="flex flex-col gap-1.5 text-sm"
+              title="Site owner's name. Used in page titles, the footer copyright, and structured data"
+            >
               <span className="text-muted-foreground">Author</span>
-              <input name="author" required defaultValue={metadata.author} className={inputClass} />
+              <input
+                name="author"
+                required
+                defaultValue={metadata.author}
+                className={inputClass}
+              />
             </label>
-            <label className="flex flex-col gap-1.5 text-sm" title="Comma-separated search keywords">
+            <label
+              className="flex flex-col gap-1.5 text-sm"
+              title="Comma-separated search keywords"
+            >
               <span className="text-muted-foreground">Keywords</span>
-              <input name="keywords" defaultValue={metadata.keywords.join(", ")} className={inputClass} />
+              <input
+                name="keywords"
+                defaultValue={metadata.keywords.join(", ")}
+                className={inputClass}
+              />
             </label>
           </div>
-          <button type="submit" className={saveButtonClass}>Save SEO</button>
+          <label
+            className="flex flex-col gap-1.5 text-sm"
+            title="Credited on X/Twitter link previews. The @ is optional"
+          >
+            <span className="text-muted-foreground">X / Twitter handle</span>
+            <input
+              name="twitter_handle"
+              defaultValue={metadata.twitterHandle}
+              placeholder="yourhandle"
+              className={`${inputClass} font-mono`}
+            />
+          </label>
+          <button type="submit" className={saveButtonClass}>
+            Save SEO
+          </button>
         </form>
       </section>
     </div>

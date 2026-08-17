@@ -5,8 +5,8 @@ import { ThemeProvider } from "@/components/ui/theme-provider";
 import ThemeScript from "@/components/ui/theme-script";
 import { Toaster } from "@/components/ui/sonner";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import { getSiteContent } from "@/lib/settings";
-import { siteUrl } from "@/lib/site-url";
+import { getSiteContent, twitterCreator } from "@/lib/settings";
+import { absoluteUrl, siteUrl } from "@/lib/site-url";
 
 const schibsted = Schibsted_Grotesk({
   variable: "--font-schibsted",
@@ -24,7 +24,8 @@ const geistMono = Geist_Mono({
 });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { metadata, hero } = await getSiteContent();
+  const site = await getSiteContent();
+  const { metadata, hero } = site;
 
   return {
     metadataBase: siteUrl,
@@ -42,24 +43,26 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       title: metadata.title,
       description: metadata.description,
-      url: "https://aman.is-a.dev/",
+      url: absoluteUrl("/"),
       siteName: `${metadata.author} Portfolio`,
       type: "website",
-      images: [
-        {
-          url: hero.image,
-          width: 1200,
-          height: 630,
-          alt: metadata.title,
-        },
-      ],
+      images: hero.image
+        ? [
+            {
+              url: hero.image,
+              width: 1200,
+              height: 630,
+              alt: metadata.title,
+            },
+          ]
+        : undefined,
     },
     twitter: {
       card: "summary_large_image",
       title: metadata.title,
       description: metadata.description,
-      creator: "@amang9446",
-      images: [hero.image],
+      creator: twitterCreator(site),
+      images: hero.image ? [hero.image] : undefined,
     },
     robots: {
       index: true,

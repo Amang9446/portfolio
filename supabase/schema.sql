@@ -81,6 +81,9 @@ create index if not exists posts_tags_idx
 -- ---------------------------------------------------------------------------
 create table if not exists public.projects (
   id uuid primary key default gen_random_uuid(),
+  -- URL slug. NOT NULL with no default: every insert must supply one.
+  -- saveProject() in src/app/admin/actions.ts derives it from the title.
+  slug text not null,
   title text not null,
   description text not null default '',
   image text not null default '',
@@ -90,9 +93,78 @@ create table if not exists public.projects (
   tags text[] not null default '{}',
   sort_order integer not null default 0,
   visible boolean not null default true,
+  -- Long-form case-study fields, optional per project.
+  role text not null default '',
+  problem text not null default '',
+  architecture text not null default '',
+  challenges text not null default '',
+  results text not null default '',
+  media jsonb not null default '[]'::jsonb
+    constraint projects_media_is_array check (jsonb_typeof(media) = 'array'),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Keep existing installations in sync when this bootstrap schema is rerun.
+alter table public.projects
+  add column if not exists visible boolean not null default true,
+  add column if not exists role text not null default '',
+  add column if not exists problem text not null default '',
+  add column if not exists architecture text not null default '',
+  add column if not exists challenges text not null default '',
+  add column if not exists results text not null default '',
+  add column if not exists media jsonb not null default '[]'::jsonb;
+
+-- `slug` needs the three-step treatment on an existing table: it is NOT NULL
+-- with no default, so it has to arrive nullable, be backfilled, and only then
+-- be constrained. (New installs get it directly from the create table above.)
+alter table public.projects
+  add column if not exists slug text;
+
+update public.projects
+set slug = coalesce(
+  nullif(
+    trim(both '-' from lower(
+      regexp_replace(
+        regexp_replace(title, '[^a-zA-Z0-9\s-]', '', 'g'),
+        '\s+', '-', 'g'
+      )
+    )),
+    ''
+  ),
+  'project-' || left(id::text, 8)
+)
+where slug is null or btrim(slug) = '';
+
+-- Two projects can share a title; de-duplicate before the unique index.
+with ranked as (
+  select id, slug, row_number() over (partition by slug order by created_at, id) as n
+  from public.projects
+)
+update public.projects p
+set slug = ranked.slug || '-' || ranked.n
+from ranked
+where p.id = ranked.id and ranked.n > 1;
+
+alter table public.projects
+  alter column slug set not null;
+
+create unique index if not exists projects_slug_key
+  on public.projects (slug);
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'projects_media_is_array'
+      and conrelid = 'public.projects'::regclass
+  ) then
+    alter table public.projects
+      add constraint projects_media_is_array
+      check (jsonb_typeof(media) = 'array');
+  end if;
+end $$;
 
 -- ---------------------------------------------------------------------------
 -- updated_at trigger
@@ -138,6 +210,27 @@ drop trigger if exists projects_updated_at on public.projects;
 create trigger projects_updated_at
   before update on public.projects
   for each row execute function public.set_updated_at();
+
+-- ---------------------------------------------------------------------------
+-- A note on the Supabase database linter
+--
+-- The functions below are SECURITY DEFINER and granted to `anon`, so the
+-- advisor reports `anon_security_definer_function_executable` for each. That
+-- is intentional and is the point of the design: each one is a deliberately
+-- narrow RPC that reads or writes exactly one thing on behalf of a caller who
+-- has no direct table access at all.
+--
+--   is_admin()            reads the RLS-locked admin_emails table
+--   record_post_view()    increments the counter of a published post
+--   get_post_like_state() reads one visitor's like state
+--   set_post_like()       toggles one visitor's like
+--   has_any_projects()    one bit: does the projects table have any rows
+--
+-- Every one of them sets an empty or fixed search_path and is revoked from
+-- PUBLIC before being granted to the roles that need it. Do not "fix" the
+-- advisor warning by switching them to SECURITY INVOKER — that would break
+-- them, because the callers cannot touch the underlying tables.
+-- ---------------------------------------------------------------------------
 
 -- ---------------------------------------------------------------------------
 -- Admin allowlist: only emails in this table may write content.
@@ -315,16 +408,38 @@ notify pgrst, 'reload schema';
 alter table public.posts enable row level security;
 alter table public.projects enable row level security;
 
+-- Two conventions apply to every policy below; keep them when adding more.
+--
+-- 1. Admin write access is granted per command (INSERT / UPDATE / DELETE),
+--    never as `for all`. `for all` includes SELECT, which would leave two
+--    permissive SELECT policies on the table and make every public read
+--    evaluate is_admin() as well.
+-- 2. is_admin() is always called as `(select public.is_admin())`. Postgres
+--    caches a scalar subquery as a once-per-statement InitPlan; a bare call
+--    is re-evaluated for every row.
+
 drop policy if exists "Public can read published posts" on public.posts;
 create policy "Public can read published posts"
   on public.posts for select
-  using (published = true or public.is_admin());
+  using (published = true or (select public.is_admin()));
 
 drop policy if exists "Admins can write posts" on public.posts;
-create policy "Admins can write posts"
-  on public.posts for all
-  using (public.is_admin())
-  with check (public.is_admin());
+
+drop policy if exists "Admins can insert posts" on public.posts;
+create policy "Admins can insert posts"
+  on public.posts for insert
+  with check ((select public.is_admin()));
+
+drop policy if exists "Admins can update posts" on public.posts;
+create policy "Admins can update posts"
+  on public.posts for update
+  using ((select public.is_admin()))
+  with check ((select public.is_admin()));
+
+drop policy if exists "Admins can delete posts" on public.posts;
+create policy "Admins can delete posts"
+  on public.posts for delete
+  using ((select public.is_admin()));
 
 drop policy if exists "Public can read projects" on public.projects;
 create policy "Public can read projects"
@@ -352,10 +467,22 @@ grant execute on function public.has_any_projects()
 notify pgrst, 'reload schema';
 
 drop policy if exists "Admins can write projects" on public.projects;
-create policy "Admins can write projects"
-  on public.projects for all
-  using (public.is_admin())
-  with check (public.is_admin());
+
+drop policy if exists "Admins can insert projects" on public.projects;
+create policy "Admins can insert projects"
+  on public.projects for insert
+  with check ((select public.is_admin()));
+
+drop policy if exists "Admins can update projects" on public.projects;
+create policy "Admins can update projects"
+  on public.projects for update
+  using ((select public.is_admin()))
+  with check ((select public.is_admin()));
+
+drop policy if exists "Admins can delete projects" on public.projects;
+create policy "Admins can delete projects"
+  on public.projects for delete
+  using ((select public.is_admin()));
 
 -- ---------------------------------------------------------------------------
 -- Storage: public media bucket, admin-only writes
@@ -372,18 +499,18 @@ create policy "Public can read media"
 drop policy if exists "Admins can upload media" on storage.objects;
 create policy "Admins can upload media"
   on storage.objects for insert to authenticated
-  with check (bucket_id = 'media' and public.is_admin());
+  with check (bucket_id = 'media' and (select public.is_admin()));
 
 drop policy if exists "Admins can update media" on storage.objects;
 create policy "Admins can update media"
   on storage.objects for update to authenticated
-  using (bucket_id = 'media' and public.is_admin())
-  with check (bucket_id = 'media' and public.is_admin());
+  using (bucket_id = 'media' and (select public.is_admin()))
+  with check (bucket_id = 'media' and (select public.is_admin()));
 
 drop policy if exists "Admins can delete media" on storage.objects;
 create policy "Admins can delete media"
   on storage.objects for delete to authenticated
-  using (bucket_id = 'media' and public.is_admin());
+  using (bucket_id = 'media' and (select public.is_admin()));
 
 -- ---------------------------------------------------------------------------
 -- Site content: singleton settings (hero/contact/metadata) + skills
@@ -415,10 +542,22 @@ create policy "Public can read site settings"
   using (true);
 
 drop policy if exists "Admins can write site settings" on public.site_settings;
-create policy "Admins can write site settings"
-  on public.site_settings for all
-  using (public.is_admin())
-  with check (public.is_admin());
+
+drop policy if exists "Admins can insert site settings" on public.site_settings;
+create policy "Admins can insert site settings"
+  on public.site_settings for insert
+  with check ((select public.is_admin()));
+
+drop policy if exists "Admins can update site settings" on public.site_settings;
+create policy "Admins can update site settings"
+  on public.site_settings for update
+  using ((select public.is_admin()))
+  with check ((select public.is_admin()));
+
+drop policy if exists "Admins can delete site settings" on public.site_settings;
+create policy "Admins can delete site settings"
+  on public.site_settings for delete
+  using ((select public.is_admin()));
 
 drop policy if exists "Public can read skills" on public.skills;
 create policy "Public can read skills"
@@ -426,7 +565,19 @@ create policy "Public can read skills"
   using (true);
 
 drop policy if exists "Admins can write skills" on public.skills;
-create policy "Admins can write skills"
-  on public.skills for all
-  using (public.is_admin())
-  with check (public.is_admin());
+
+drop policy if exists "Admins can insert skills" on public.skills;
+create policy "Admins can insert skills"
+  on public.skills for insert
+  with check ((select public.is_admin()));
+
+drop policy if exists "Admins can update skills" on public.skills;
+create policy "Admins can update skills"
+  on public.skills for update
+  using ((select public.is_admin()))
+  with check ((select public.is_admin()));
+
+drop policy if exists "Admins can delete skills" on public.skills;
+create policy "Admins can delete skills"
+  on public.skills for delete
+  using ((select public.is_admin()));

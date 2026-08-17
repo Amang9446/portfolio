@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import NavBar from "@/components/layout/nav-bar";
-import Footer from "@/components/layout/Footer";
+import Footer from "@/components/layout/footer";
 import MarkdownContent from "@/components/markdown/markdown-content";
 import ArticleLightbox from "@/components/posts/article-lightbox";
 import ArticleReadingProgress from "@/components/posts/article-reading-progress";
@@ -17,7 +17,7 @@ import PostViewTracker from "@/components/posts/post-view-tracker";
 import TagList from "@/components/posts/tag-list";
 import { getArticleReadingData } from "@/lib/article-reading";
 import { getPostBySlug, getPublishedPosts } from "@/lib/posts";
-import { getSiteContent } from "@/lib/settings";
+import { getSiteContent, pageTitle, twitterCreator } from "@/lib/settings";
 import { absoluteUrl } from "@/lib/site-url";
 import { SOCIAL_IMAGE_SIZE, socialImageUrl } from "@/lib/social-image";
 import {
@@ -42,17 +42,17 @@ export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const post = await getPostBySlug(slug);
-  if (!post) return { title: "Post not found | Aman" };
+  const [post, site] = await Promise.all([
+    getPostBySlug(slug),
+    getSiteContent(),
+  ]);
+  if (!post) return { title: pageTitle("Post not found", site) };
 
-  const title = post.meta?.title || `${post.title} | Aman`;
+  const title = post.meta?.title || pageTitle(post.title, site);
   const description = post.meta?.description || post.excerpt;
   const articlePath = `/blog/${encodeURIComponent(post.slug)}`;
   const articleUrl = absoluteUrl(articlePath);
-  const shareImageUrl = socialImageUrl(
-    post.slug,
-    post.updated_at || post.id,
-  );
+  const shareImageUrl = socialImageUrl(post.slug, post.updated_at || post.id);
   const imageAlt = post.cover_image_alt.trim() || post.title;
 
   return {
@@ -61,19 +61,22 @@ export async function generateMetadata({
     keywords: post.meta?.keywords || undefined,
     alternates: {
       canonical: articlePath,
+      // This replaces the root layout's `alternates`, so the feed link is
+      // repeated here rather than inherited.
       types: {
         "text/markdown": `${articlePath}.md`,
+        "application/rss+xml": "/feed.xml",
       },
     },
     openGraph: {
       title,
       description,
       url: articleUrl,
-      siteName: "Aman Portfolio",
+      siteName: `${site.metadata.author} Portfolio`,
       type: "article",
       publishedTime: post.published_at ?? undefined,
       modifiedTime: post.updated_at,
-      authors: ["Aman"],
+      authors: [site.metadata.author],
       images: [
         {
           url: shareImageUrl,
@@ -88,7 +91,7 @@ export async function generateMetadata({
       card: "summary_large_image",
       title,
       description,
-      creator: "@amanunreal",
+      creator: twitterCreator(site),
       images: [
         {
           url: shareImageUrl,
@@ -135,14 +138,21 @@ export default async function BlogPostPage({ params }: PageProps) {
             breadcrumbJsonLd([
               { name: "Home", path: "/" },
               { name: "Blog", path: "/blog" },
-              { name: post.title, path: `/blog/${encodeURIComponent(post.slug)}` },
+              {
+                name: post.title,
+                path: `/blog/${encodeURIComponent(post.slug)}`,
+              },
             ]),
           ]),
         }}
       />
       <ArticleReadingProgress contentId="article-content" />
       <ArticleLightbox contentId="article-content" />
-      <NavBar socialLinks={site.contact.socialLinks} sections={site.sections} />
+      <NavBar
+        brand={site.hero.name}
+        socialLinks={site.contact.socialLinks}
+        sections={site.sections}
+      />
       <article className="mx-auto w-full max-w-5xl flex-1 px-6 py-20 md:py-28">
         <div className="mx-auto max-w-3xl">
           <div className="no-print flex items-center justify-between gap-4">

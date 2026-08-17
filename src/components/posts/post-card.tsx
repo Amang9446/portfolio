@@ -55,12 +55,7 @@ export default function PostCard({
             <ViewCount count={post.view_count} />
           </div>
           {/* Not links: the whole card is already one. */}
-          <TagList
-            tags={post.tags}
-            limit={3}
-            linked={false}
-            className="mt-3"
-          />
+          <TagList tags={post.tags} limit={3} linked={false} className="mt-3" />
           <h3
             className={`mt-3 font-semibold leading-snug transition-colors group-hover:text-primary ${
               featured ? "text-2xl md:text-3xl" : "text-lg"

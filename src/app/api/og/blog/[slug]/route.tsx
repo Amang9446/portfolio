@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 import sharp from "sharp";
 import { getPostBySlug } from "@/lib/posts";
+import { getSiteContent } from "@/lib/settings";
 import { SOCIAL_IMAGE_SIZE } from "@/lib/social-image";
 
 export const runtime = "nodejs";
@@ -39,7 +40,10 @@ export async function GET(
   { params }: { params: Promise<{ slug: string }> },
 ) {
   const { slug } = await params;
-  const post = await getPostBySlug(slug);
+  const [post, site] = await Promise.all([
+    getPostBySlug(slug),
+    getSiteContent(),
+  ]);
 
   if (!post) {
     return new Response("Post not found", { status: 404 });
@@ -68,68 +72,63 @@ export async function GET(
   }
 
   const response = new ImageResponse(
-    (
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        position: "relative",
+        overflow: "hidden",
+        background: "#f7f4ee",
+        color: "#3b3632",
+      }}
+    >
       <div
         style={{
           width: "100%",
           height: "100%",
           display: "flex",
-          position: "relative",
-          overflow: "hidden",
-          background: "#f7f4ee",
-          color: "#3b3632",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          padding: "72px 80px",
+          border: "2px solid #ded7ce",
         }}
       >
         <div
           style={{
-            width: "100%",
-            height: "100%",
+            width: 64,
+            height: 6,
             display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-            padding: "72px 80px",
-            border: "2px solid #ded7ce",
+            borderRadius: 999,
+            background: "#9a5c3f",
+          }}
+        />
+        <div
+          style={{
+            display: "flex",
+            maxWidth: 980,
+            fontSize: 64,
+            lineHeight: 1.08,
+            fontWeight: 600,
+            letterSpacing: "-2px",
           }}
         >
-          <div
-            style={{
-              width: 64,
-              height: 6,
-              display: "flex",
-              borderRadius: 999,
-              background: "#9a5c3f",
-            }}
-          />
-          <div
-            style={{
-              display: "flex",
-              maxWidth: 980,
-              fontSize: 64,
-              lineHeight: 1.08,
-              fontWeight: 600,
-              letterSpacing: "-2px",
-            }}
-          >
-            {post.title}
-          </div>
-          <div
-            style={{
-              display: "flex",
-              fontSize: 28,
-              color: "#766f69",
-            }}
-          >
-            Aman · Software Engineer
-          </div>
+          {post.title}
+        </div>
+        <div
+          style={{
+            display: "flex",
+            fontSize: 28,
+            color: "#766f69",
+          }}
+        >
+          {[site.metadata.author, site.hero.title].filter(Boolean).join(" · ")}
         </div>
       </div>
-    ),
+    </div>,
     SOCIAL_IMAGE_SIZE,
   );
 
-  response.headers.set(
-    "Cache-Control",
-    cacheControl,
-  );
+  response.headers.set("Cache-Control", cacheControl);
   return response;
 }

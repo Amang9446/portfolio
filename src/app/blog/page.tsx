@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import NavBar from "@/components/layout/nav-bar";
-import Footer from "@/components/layout/Footer";
+import Footer from "@/components/layout/footer";
 import PostGrid from "@/components/posts/post-grid";
 import { getAllTags, getPublishedPosts } from "@/lib/posts";
-import { getSiteContent } from "@/lib/settings";
+import { getSiteContent, pageTitle } from "@/lib/settings";
 import {
   blogJsonLd,
   breadcrumbJsonLd,
@@ -14,10 +14,26 @@ import {
 
 export const revalidate = 60;
 
-export const metadata: Metadata = {
-  title: "Blog | Aman",
-  description: "Notes on React Native, web development, and open source.",
-};
+const BLOG_DESCRIPTION =
+  "Notes on React Native, web development, and open source.";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const site = await getSiteContent();
+
+  return {
+    title: pageTitle("Blog", site),
+    // Blog-specific copy, not the site-wide description — this is what search
+    // results show for /blog, so it should describe the writing, not the site.
+    description: BLOG_DESCRIPTION,
+    // Setting `alternates` here replaces the root layout's copy wholesale, so
+    // the feed link has to be repeated or RSS auto-discovery is lost on the
+    // one page where readers actually look for it.
+    alternates: {
+      canonical: "/blog",
+      types: { "application/rss+xml": "/feed.xml" },
+    },
+  };
+}
 
 export default async function BlogPage() {
   const [posts, site, tags] = await Promise.all([
@@ -41,7 +57,11 @@ export default async function BlogPage() {
           ]),
         }}
       />
-      <NavBar socialLinks={site.contact.socialLinks} sections={site.sections} />
+      <NavBar
+        brand={site.hero.name}
+        socialLinks={site.contact.socialLinks}
+        sections={site.sections}
+      />
       <div className="mx-auto w-full max-w-5xl flex-1 px-6 py-20 md:py-28">
         <p className="font-mono text-xs uppercase tracking-[0.2em] text-primary">
           Writing
@@ -58,7 +78,9 @@ export default async function BlogPage() {
                     className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1 font-mono text-xs tracking-wide text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
                   >
                     {tag.label}
-                    <span className="text-muted-foreground/60">{tag.count}</span>
+                    <span className="text-muted-foreground/60">
+                      {tag.count}
+                    </span>
                   </Link>
                 </li>
               ))}
@@ -68,8 +90,8 @@ export default async function BlogPage() {
 
         {posts.length === 0 ? (
           <p className="mt-12 max-w-[48ch] leading-relaxed text-muted-foreground">
-            Nothing published yet — first post is on its way. Meanwhile, my
-            work lives on{" "}
+            Nothing published yet — first post is on its way. Meanwhile, my work
+            lives on{" "}
             <a
               href={site.contact.socialLinks[0]?.url}
               target="_blank"

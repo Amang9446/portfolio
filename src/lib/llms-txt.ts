@@ -95,9 +95,7 @@ export async function buildLlmsTxt() {
   }
 
   if (sections.contact) {
-    pages.push(
-      linkItem("Contact", absoluteUrl("/#contact"), contact.email),
-    );
+    pages.push(linkItem("Contact", absoluteUrl("/#contact"), contact.email));
   }
 
   lines.push("", "## Pages", "", ...pages);

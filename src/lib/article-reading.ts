@@ -91,7 +91,8 @@ function getReadingMinutes(root: MarkdownNode) {
     return node.children?.map(readableNodeText).join(" ") ?? "";
   };
   const readableText = readableNodeText(root);
-  const wordCount = readableText.match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu)?.length ?? 0;
+  const wordCount =
+    readableText.match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu)?.length ?? 0;
 
   return Math.max(1, Math.ceil(wordCount / wordsPerMinute));
 }

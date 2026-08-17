@@ -1,5 +1,5 @@
 import { Project } from "@/config/portfolio";
-import ProjectCard from "@/components/projects/ProjectCard";
+import ProjectCard from "@/components/projects/project-card";
 
 interface ProjectsProps {
   projects: Project[];

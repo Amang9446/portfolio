@@ -72,9 +72,9 @@ async function fetchPublishedPosts(homeOnly: boolean): Promise<PostSummary[]> {
     return [];
   }
   return (
-    (data as unknown as Array<
-      Omit<PostSummary, "like_count" | "tags">
-    > | null)?.map(normalizePost) ?? []
+    (
+      data as unknown as Array<Omit<PostSummary, "like_count" | "tags">> | null
+    )?.map(normalizePost) ?? []
   );
 }
 
@@ -110,20 +110,18 @@ async function fetchPublishedPostsWithContent(): Promise<Post[]> {
 // List pages do not need article bodies, so both queries skip `content`.
 export async function getPublishedPosts(): Promise<PostSummary[]> {
   if (!isSupabaseConfigured()) return [];
-  return unstable_cache(
-    () => fetchPublishedPosts(false),
-    ["published-posts"],
-    { tags: [postsCacheTag()], revalidate: 60 },
-  )();
+  return unstable_cache(() => fetchPublishedPosts(false), ["published-posts"], {
+    tags: [postsCacheTag()],
+    revalidate: 60,
+  })();
 }
 
 export async function getHomePosts(): Promise<PostSummary[]> {
   if (!isSupabaseConfigured()) return [];
-  return unstable_cache(
-    () => fetchPublishedPosts(true),
-    ["home-posts"],
-    { tags: [postsCacheTag()], revalidate: 60 },
-  )();
+  return unstable_cache(() => fetchPublishedPosts(true), ["home-posts"], {
+    tags: [postsCacheTag()],
+    revalidate: 60,
+  })();
 }
 
 export async function getPostBySlug(slug: string): Promise<Post | null> {

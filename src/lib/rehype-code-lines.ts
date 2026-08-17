@@ -121,7 +121,10 @@ function transformCode(code: HastNode) {
   const className = code.properties?.className;
   code.properties = {
     ...code.properties,
-    className: [...(Array.isArray(className) ? className : []), "code-numbered"],
+    className: [
+      ...(Array.isArray(className) ? className : []),
+      "code-numbered",
+    ],
   };
 }
 

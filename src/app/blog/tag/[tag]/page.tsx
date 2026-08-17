@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import NavBar from "@/components/layout/nav-bar";
-import Footer from "@/components/layout/Footer";
+import Footer from "@/components/layout/footer";
 import PostGrid from "@/components/posts/post-grid";
 import { getAllTags, getPostsByTag } from "@/lib/posts";
-import { getSiteContent } from "@/lib/settings";
+import { getSiteContent, pageTitle } from "@/lib/settings";
 import { breadcrumbJsonLd, jsonLdScript } from "@/lib/structured-data";
 
 export const revalidate = 60;
@@ -29,13 +29,16 @@ export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { tag } = await params;
-  const label = await tagLabel(tag);
-  if (!label) return { title: "Topic not found | Aman" };
+  const [site, label] = await Promise.all([getSiteContent(), tagLabel(tag)]);
+  if (!label) return { title: pageTitle("Topic not found", site) };
 
   return {
-    title: `${label} | Aman`,
+    title: pageTitle(label, site),
     description: `Writing about ${label}.`,
-    alternates: { canonical: `/blog/tag/${tag}` },
+    alternates: {
+      canonical: `/blog/tag/${tag}`,
+      types: { "application/rss+xml": "/feed.xml" },
+    },
   };
 }
 
@@ -60,7 +63,11 @@ export default async function TagPage({ params }: PageProps) {
           ),
         }}
       />
-      <NavBar socialLinks={site.contact.socialLinks} sections={site.sections} />
+      <NavBar
+        brand={site.hero.name}
+        socialLinks={site.contact.socialLinks}
+        sections={site.sections}
+      />
       <div className="mx-auto w-full max-w-5xl flex-1 px-6 py-20 md:py-28">
         <Link
           href="/blog"

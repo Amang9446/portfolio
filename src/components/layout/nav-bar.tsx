@@ -9,7 +9,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { portfolioConfig, type SocialLink } from "@/config/portfolio";
+import type { SocialLink } from "@/config/portfolio";
 import type { SectionVisibility } from "@/lib/settings";
 import { getIcon } from "../ui/icons";
 import ThemeToggle from "../ui/theme-toggle";
@@ -24,14 +24,18 @@ const allNavLinks = [
 ] as const;
 
 interface NavBarProps {
-  socialLinks?: SocialLink[];
+  /** Wordmark in the top-left — the site owner's name. */
+  brand: string;
+  socialLinks: SocialLink[];
   sections?: SectionVisibility;
 }
 
-export default function NavBar({
-  socialLinks = portfolioConfig.contact.socialLinks,
-  sections,
-}: NavBarProps) {
+// `brand` and `socialLinks` are required rather than defaulted from
+// portfolioConfig: this is a client component, so importing that module as a
+// value would pull the whole static config — including the inlined
+// NEXT_PUBLIC_PORTFOLIO_CONFIG payload — into the browser bundle. Every call
+// site already passes both from server-resolved settings.
+export default function NavBar({ brand, socialLinks, sections }: NavBarProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const closeMenu = () => setIsMenuOpen(false);
 
@@ -47,7 +51,7 @@ export default function NavBar({
           onClick={closeMenu}
           className="font-display text-lg font-semibold tracking-tight"
         >
-          Aman
+          {brand}
           <span className="text-primary">.</span>
         </Link>
 

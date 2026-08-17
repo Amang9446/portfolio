@@ -7,7 +7,10 @@ interface PageProps {
   searchParams: Promise<{ error?: string }>;
 }
 
-export default async function EditPostPage({ params, searchParams }: PageProps) {
+export default async function EditPostPage({
+  params,
+  searchParams,
+}: PageProps) {
   const [{ id }, { error }] = await Promise.all([params, searchParams]);
   const post = await getPostById(id);
   if (!post) notFound();

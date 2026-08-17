@@ -6,7 +6,10 @@ interface SkillsProps {
 
 export default function Skills({ skills }: SkillsProps) {
   const groups = [
-    { label: "Technologies", items: skills.filter((s) => s.category === "tech") },
+    {
+      label: "Technologies",
+      items: skills.filter((s) => s.category === "tech"),
+    },
     { label: "Tools", items: skills.filter((s) => s.category === "tools") },
   ];
 

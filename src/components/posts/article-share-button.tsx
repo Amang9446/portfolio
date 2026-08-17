@@ -20,7 +20,8 @@ export default function ArticleShareButton({
         await navigator.share({ title, url });
         return;
       } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") return;
+        if (error instanceof DOMException && error.name === "AbortError")
+          return;
       }
     }
 

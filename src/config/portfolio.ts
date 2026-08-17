@@ -1,3 +1,24 @@
+/**
+ * Static fallback content.
+ *
+ * The site is DB-first: everything here is overridden by Supabase once
+ * `site_settings`, `skills`, and `projects` have rows. It serves two purposes:
+ *
+ *   1. A fresh clone renders a complete, coherent site with no database
+ *      configured at all.
+ *   2. It is the safety net if Supabase is unreachable. That matters more than
+ *      it looks: an ISR revalidation that hits a database error would otherwise
+ *      cache whatever is written here and serve it publicly.
+ *
+ * Because of (2), a real deployment wants its own content here — but the repo
+ * itself should stay generic for anyone forking it. `NEXT_PUBLIC_PORTFOLIO_CONFIG`
+ * squares that circle: set it to a JSON object in your deployment environment
+ * and it is deep-merged over the defaults below. See `.env.example`.
+ *
+ * Using this as a template? Edit the defaults below, or set that variable.
+ * Once the admin dashboard is up, manage content there instead.
+ */
+
 export interface Project {
   id: string;
   title: string;
@@ -45,131 +66,201 @@ export interface PortfolioConfig {
     description: string;
     author: string;
     keywords: string[];
+    twitterHandle: string;
   };
 }
 
-export const portfolioConfig: PortfolioConfig = {
+/** Generic defaults. Safe to publish; meaningless to any particular person. */
+export const defaultConfig: PortfolioConfig = {
   hero: {
-    name: "Aman",
+    name: "Your Name",
     title: "Software Engineer",
-    subtitle: "React Native · Open Source",
+    subtitle: "Mobile · Open Source",
     description:
-      "I build seamless mobile and web applications with React Native, Expo, and TypeScript — and contribute to open source along the way.",
-    image:
-      "https://pbs.twimg.com/profile_images/1905805359064723456/pJ1-dOHi_400x400.jpg",
+      "I build mobile and web applications, and contribute to open source along the way. Replace this copy in src/config/portfolio.ts, or manage it from the admin dashboard.",
+    image: "",
   },
   projects: [
     {
-      id: "Business-App",
-      title: "Business App",
+      id: "example-project",
+      title: "Example Project",
       description:
-        "Created an app in which seller can onboard their business and get the best out of it.",
-      image:
-        "https://res.cloudinary.com/dul8kwnvj/image/upload/v1720977179/krfj9s3z7vrpsrommbbn.jpg",
-      demoUrl: "https://github.com/Amang9446/Get-Your-Business-Live",
-      githubUrl:
-        "https://github.com/Amang9446/Get-Your-Business-Live?tab=readme-ov-file",
-      docsUrl:
-        "https://github.com/Amang9446/Get-Your-Business-Live?tab=readme-ov-file",
-      tags: [
-        "React",
-        "React Native",
-        "TypeScript",
-        "JavaScript",
-        "Expo",
-        "Redux",
-        "Firebase",
-      ],
+        "A short description of what this project does and why it is interesting. Two lines is plenty.",
+      image: "",
+      demoUrl: "https://example.com",
+      githubUrl: "https://github.com/you/example-project",
+      tags: ["TypeScript", "React"],
     },
     {
-      id: "Expo-Ecommerce",
-      title: "Expo Ecommerce",
-      description: "Created a basic ecommerce app with minimal UI",
-      image:
-        "https://res.cloudinary.com/drzv3bviq/image/upload/v1734372554/vx6nirmnnybglbztaxrd.png",
-      demoUrl: "https://github.com/Amang9446/Expo-Ecommerce",
-      githubUrl: "https://github.com/Amang9446/Expo-Ecommerce",
-      docsUrl:
-        "https://github.com/Amang9446/Expo-Ecommerce/blob/main/README.md",
-      tags: [
-        "React Native",
-        "TypeScript",
-        "Expo",
-        "Firebase",
-        "NativeWind",
-        "Zustand",
-      ],
-    },
-    {
-      id: "Expo-Notes App",
-      title: "Expo Notes App",
+      id: "second-project",
+      title: "Second Project",
       description:
-        "Replicated a note-taking app design from X/Twitter post using React Native & Expo",
-      image:
-        "https://res.cloudinary.com/drzv3bviq/image/upload/v1752402953/Simulator_Screenshot_-_iPhone_16_Pro_-_2025-07-13_at_16.04.11_crs7a0.png",
-      demoUrl: "https://x.com/Amang9446/status/1944032225856467410",
-      githubUrl: "https://github.com/Amang9446/expo-notes-app",
-      docsUrl:
-        "https://github.com/Amang9446/expo-notes-app/blob/main/README.md",
-      tags: ["React Native", "TypeScript", "Expo"],
+        "Another placeholder entry, so the projects grid has something to lay out on a fresh clone.",
+      image: "",
+      githubUrl: "https://github.com/you/second-project",
+      tags: ["Next.js", "Postgres"],
     },
   ],
   skills: [
-    // Tech skills
-    { name: "React Native", category: "tech" },
     { name: "TypeScript", category: "tech" },
-    { name: "Expo", category: "tech" },
-    { name: "Supabase", category: "tech" },
-    { name: "Firebase", category: "tech" },
-    { name: "NativeWind", category: "tech" },
-    { name: "Redux", category: "tech" },
-    // Tools skills
-    { name: "Git/GitHub", category: "tools" },
+    { name: "React", category: "tech" },
+    { name: "Next.js", category: "tech" },
+    { name: "Node.js", category: "tech" },
+    { name: "Postgres", category: "tech" },
+    { name: "Git", category: "tools" },
     { name: "Docker", category: "tools" },
-    { name: "AWS", category: "tools" },
-    { name: "GCP", category: "tools" },
-    { name: "Expo Router", category: "tools" },
+    { name: "Figma", category: "tools" },
   ],
   contact: {
-    email: "amang9446@gmail.com",
+    email: "you@example.com",
     availability: "Available",
     responseTime: "Usually responds within 24 hours",
     socialLinks: [
-      {
-        name: "GitHub",
-        url: "https://github.com/amang9446",
-        icon: "github",
-      },
+      { name: "GitHub", url: "https://github.com/you", icon: "github" },
       {
         name: "LinkedIn",
-        url: "https://linkedin.com/in/amang9446",
+        url: "https://linkedin.com/in/you",
         icon: "linkedin",
       },
-      {
-        name: "X",
-        url: "https://x.com/amang9446",
-        icon: "x",
-      },
+      { name: "X", url: "https://x.com/you", icon: "x" },
     ],
   },
   metadata: {
-    title: "Aman - Software Engineer",
+    title: "Your Name — Software Engineer",
     description:
-      "Software Engineer specializing in React Native, TypeScript, and modern mobile technologies. Building high-impact projects with proven expertise.",
-    author: "Aman",
+      "Software engineer building mobile and web applications. Replace this description in src/config/portfolio.ts, or from the admin dashboard.",
+    author: "Your Name",
     keywords: [
       "Software Engineer",
-      "React Native",
       "TypeScript",
-      "Expo",
-      "Supabase",
-      "Firebase",
-      "NativeWind",
-      "Redux",
-      "Git/GitHub",
-      "Docker",
-      "AWS",
+      "React",
+      "Next.js",
       "Portfolio",
     ],
+    twitterHandle: "",
   },
 };
+
+type Overrides = {
+  [K in keyof PortfolioConfig]?: PortfolioConfig[K] extends unknown[]
+    ? PortfolioConfig[K]
+    : Partial<PortfolioConfig[K]>;
+};
+
+/**
+ * Merge a partial override over the defaults.
+ *
+ * Objects (`hero`, `contact`, `metadata`) merge field by field, so an override
+ * can set just a name. Arrays (`projects`, `skills`, `socialLinks`) replace
+ * wholesale — merging them element-wise would make it impossible to shorten a
+ * list, which is the more common intent.
+ */
+export function mergePortfolioConfig(
+  base: PortfolioConfig,
+  overrides: Overrides | null | undefined,
+): PortfolioConfig {
+  if (!overrides) return base;
+
+  return {
+    hero: { ...base.hero, ...overrides.hero },
+    projects: overrides.projects ?? base.projects,
+    skills: overrides.skills ?? base.skills,
+    contact: { ...base.contact, ...overrides.contact },
+    metadata: { ...base.metadata, ...overrides.metadata },
+  };
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Keep only the keys whose shape matches the config, dropping anything else
+ * with a warning.
+ *
+ * Syntactically valid but structurally wrong input is the dangerous case: a
+ * `metadata.keywords` given as a string would survive a bare `JSON.parse` and
+ * then throw inside `generateMetadata` when `.join()` is called on it, failing
+ * the build. Validating here keeps a bad env var to a warning.
+ */
+function validateOverrides(input: Record<string, unknown>): Overrides {
+  const result: Record<string, unknown> = {};
+
+  const reject = (key: string, expected: string) =>
+    console.warn(
+      `[portfolio] NEXT_PUBLIC_PORTFOLIO_CONFIG: "${key}" must be ${expected}; ignoring it.`,
+    );
+
+  for (const key of ["hero", "contact", "metadata"] as const) {
+    if (!(key in input)) continue;
+    if (!isPlainObject(input[key])) {
+      reject(key, "an object");
+      continue;
+    }
+    // Array-valued fields inside these objects have the same hazard.
+    const section = input[key] as Record<string, unknown>;
+    const arrayFields =
+      key === "contact"
+        ? ["socialLinks"]
+        : key === "metadata"
+          ? ["keywords"]
+          : [];
+    const cleaned: Record<string, unknown> = {};
+    for (const [field, value] of Object.entries(section)) {
+      if (arrayFields.includes(field) && !Array.isArray(value)) {
+        reject(`${key}.${field}`, "an array");
+        continue;
+      }
+      cleaned[field] = value;
+    }
+    result[key] = cleaned;
+  }
+
+  for (const key of ["projects", "skills"] as const) {
+    if (!(key in input)) continue;
+    if (!Array.isArray(input[key])) {
+      reject(key, "an array");
+      continue;
+    }
+    result[key] = input[key];
+  }
+
+  return result as Overrides;
+}
+
+/**
+ * Parse the deployment override. Malformed or wrongly shaped input falls back
+ * to the defaults with a warning rather than failing the build — a bad
+ * variable should not take the whole site down.
+ */
+export function parsePortfolioOverrides(
+  raw: string | undefined,
+): Overrides | null {
+  const value = raw?.trim();
+  if (!value) return null;
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch (error) {
+    console.warn(
+      "[portfolio] NEXT_PUBLIC_PORTFOLIO_CONFIG is not valid JSON, using defaults:",
+      error instanceof Error ? error.message : error,
+    );
+    return null;
+  }
+
+  if (!isPlainObject(parsed)) {
+    console.warn(
+      "[portfolio] NEXT_PUBLIC_PORTFOLIO_CONFIG must be a JSON object, using defaults.",
+    );
+    return null;
+  }
+
+  return validateOverrides(parsed);
+}
+
+export const portfolioConfig: PortfolioConfig = mergePortfolioConfig(
+  defaultConfig,
+  parsePortfolioOverrides(process.env.NEXT_PUBLIC_PORTFOLIO_CONFIG),
+);

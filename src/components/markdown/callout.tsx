@@ -8,10 +8,7 @@ import {
 import type { ComponentPropsWithoutRef } from "react";
 import type { CalloutKind } from "@/lib/remark-callouts";
 
-const CALLOUTS: Record<
-  CalloutKind,
-  { label: string; Icon: typeof Info }
-> = {
+const CALLOUTS: Record<CalloutKind, { label: string; Icon: typeof Info }> = {
   note: { label: "Note", Icon: Info },
   tip: { label: "Tip", Icon: Lightbulb },
   important: { label: "Important", Icon: MessageSquareWarning },

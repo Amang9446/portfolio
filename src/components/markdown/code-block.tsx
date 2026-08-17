@@ -32,7 +32,10 @@ const LANGUAGE_NAMES: Record<string, string> = {
 // identical on server and client, whereas `children` can be a fragment/string
 // during hydration, which made the label flip (hydration mismatch).
 function codeInfo(node: unknown) {
-  const empty = { language: undefined as string | undefined, meta: undefined as string | undefined };
+  const empty = {
+    language: undefined as string | undefined,
+    meta: undefined as string | undefined,
+  };
   if (!node || typeof node !== "object") return empty;
   const children = (node as { children?: unknown }).children;
   if (!Array.isArray(children)) return empty;
@@ -105,7 +108,9 @@ export default function CodeBlock({
         {title ? (
           <span className="code-title">
             {title}
-            <span className="code-title-language">{codeLanguage(language)}</span>
+            <span className="code-title-language">
+              {codeLanguage(language)}
+            </span>
           </span>
         ) : (
           <span>{codeLanguage(language)}</span>

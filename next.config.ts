@@ -1,6 +1,9 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  allowedDevOrigins: ["*.preview.same-app.com"],
+import type { NextConfig } from "next";
+import { optimizedImageHosts, supabaseImageHost } from "./src/lib/image-hosts";
+
+const supabaseHost = supabaseImageHost();
+
+const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
@@ -42,29 +45,16 @@ const nextConfig = {
     // IP, and Next 16's image optimizer then 400s. Leave this off in production.
     dangerouslyAllowLocalIP: process.env.NODE_ENV === "development",
     formats: ["image/avif", "image/webp"],
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "res.cloudinary.com",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "pbs.twimg.com",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "nasejsbkkaonqcfkxljf.supabase.co",
-        pathname: "/storage/v1/object/public/**",
-      },
-      {
-        protocol: "https",
-        hostname: "play-lh.googleusercontent.com",
-        pathname: "/**",
-      },
-    ],
+    // Derived from src/lib/image-hosts.ts so this list and the runtime check
+    // in post-cover.tsx can never drift apart.
+    remotePatterns: optimizedImageHosts().map((hostname) => ({
+      protocol: "https" as const,
+      hostname,
+      // Supabase Storage only ever serves public objects from this prefix.
+      pathname:
+        hostname === supabaseHost ? "/storage/v1/object/public/**" : "/**",
+    })),
   },
 };
 
-module.exports = nextConfig;
+export default nextConfig;

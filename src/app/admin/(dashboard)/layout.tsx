@@ -8,7 +8,7 @@ import { signOut } from "../actions";
 import AdminFeedback from "@/components/admin/admin-feedback";
 
 export const metadata = {
-  title: "Admin | Aman",
+  title: "Admin",
   robots: { index: false, follow: false },
 };
 

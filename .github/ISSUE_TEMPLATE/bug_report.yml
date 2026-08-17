@@ -1,0 +1,58 @@
+name: Bug report
+description: Something is broken or behaves unexpectedly
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what you got instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to …
+        2. Click …
+        3. See …
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where
+      options:
+        - Public site (home, blog, article)
+        - Admin dashboard
+        - Markdown editor or preview
+        - Build, deploy, or setup
+        - Discovery (sitemap, RSS, llms.txt, OG images)
+        - Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: supabase
+    attributes:
+      label: Is Supabase configured?
+      description: >-
+        With no .env.local the site runs on static fallback content, which
+        exercises a different code path.
+      options:
+        - "Yes"
+        - "No — running on static fallback"
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: |
+        Node: 22.x
+        Browser: Firefox 140
+        OS: macOS 15

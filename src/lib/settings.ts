@@ -13,6 +13,8 @@ export interface SiteMetadata {
   description: string;
   author: string;
   keywords: string[];
+  /** Twitter/X handle for `twitter:creator`, with or without the leading @. */
+  twitterHandle: string;
 }
 
 // Which public sections render. Hiding "blog" removes it from the nav and
@@ -92,3 +94,19 @@ export const getSiteContent = cache(async (): Promise<SiteContent> => {
     sections: { ...allSectionsVisible, ...(byKey.get("sections") ?? {}) },
   };
 });
+
+/**
+ * Suffix a page title with the site's author, e.g. "Blog | Ada Lovelace".
+ * Every page title goes through here so the site name lives in one place
+ * (the `metadata` setting) rather than being spelled out per route.
+ */
+export function pageTitle(label: string, site: SiteContent) {
+  const author = site.metadata.author.trim();
+  return author ? `${label} | ${author}` : label;
+}
+
+/** `twitter:creator` wants a leading @; the admin field should not require it. */
+export function twitterCreator(site: SiteContent) {
+  const handle = site.metadata.twitterHandle?.trim().replace(/^@/, "");
+  return handle ? `@${handle}` : undefined;
+}

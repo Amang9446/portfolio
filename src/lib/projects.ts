@@ -52,9 +52,8 @@ export async function getProjects(): Promise<Project[]> {
 
   // RLS hides invisible rows from this anon client, so an empty select is
   // ambiguous. Fall back to static config only when the table has no rows.
-  const { data: hasRows, error: existsError } = await supabase.rpc(
-    "has_any_projects",
-  );
+  const { data: hasRows, error: existsError } =
+    await supabase.rpc("has_any_projects");
   if (existsError) {
     console.error("Failed to check projects catalog:", existsError.message);
     return [];

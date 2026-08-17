@@ -3,10 +3,7 @@
 import { useEffect, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import {
-  adminNoticeMessages,
-  type AdminNotice,
-} from "@/lib/admin-feedback";
+import { adminNoticeMessages, type AdminNotice } from "@/lib/admin-feedback";
 
 export default function AdminFeedback() {
   const pathname = usePathname();

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { optimizedImageHosts } from "@/lib/image-hosts";
 import type { PostSummary } from "@/lib/posts";
 
 type CoverPost = Pick<
@@ -19,14 +20,9 @@ const IMAGE_SIZES: Record<keyof typeof RATIOS, string> = {
   wide: "(max-width: 1024px) calc(100vw - 3rem), 976px",
 };
 
-// Keep this aligned with `images.remotePatterns` in next.config.ts. Unknown
-// CMS URLs still use a native image below instead of failing at runtime.
-const OPTIMIZED_IMAGE_HOSTS = new Set([
-  "res.cloudinary.com",
-  "pbs.twimg.com",
-  "nasejsbkkaonqcfkxljf.supabase.co",
-  "play-lh.googleusercontent.com",
-]);
+// Same list `images.remotePatterns` is built from, so the two cannot drift.
+// Unknown CMS URLs still use a native image below instead of failing at runtime.
+const OPTIMIZED_IMAGE_HOSTS = new Set(optimizedImageHosts());
 
 function canUseNextImage(imageUrl: string) {
   if (imageUrl.startsWith("/")) return true;

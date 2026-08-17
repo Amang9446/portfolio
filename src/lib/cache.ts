@@ -26,7 +26,9 @@ export function revalidateArticle(slug: string) {
   updateTag(postCacheTag(slug));
 }
 
-export function revalidateArticles(slugs: readonly (string | null | undefined)[]) {
+export function revalidateArticles(
+  slugs: readonly (string | null | undefined)[],
+) {
   const unique = new Set<string>();
   for (const slug of slugs) {
     if (slug) unique.add(slug);
