@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import { optimizedImageHosts, supabaseImageHost } from "./src/lib/image-hosts";
+import { IMAGE_QUALITIES } from "./src/lib/image-quality";
 
 const supabaseHost = supabaseImageHost();
 
@@ -45,6 +46,7 @@ const nextConfig: NextConfig = {
     // IP, and Next 16's image optimizer then 400s. Leave this off in production.
     dangerouslyAllowLocalIP: process.env.NODE_ENV === "development",
     formats: ["image/avif", "image/webp"],
+    qualities: IMAGE_QUALITIES,
     // Derived from src/lib/image-hosts.ts so this list and the runtime check
     // in post-cover.tsx can never drift apart.
     remotePatterns: optimizedImageHosts().map((hostname) => ({

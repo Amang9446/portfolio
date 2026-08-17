@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { optimizedImageHosts } from "@/lib/image-hosts";
+import { IMAGE_QUALITY } from "@/lib/image-quality";
 import type { PostSummary } from "@/lib/posts";
 
 type CoverPost = Pick<
@@ -105,6 +106,7 @@ export default function PostCover({
           alt={imageAlt}
           fill
           sizes={IMAGE_SIZES[ratio]}
+          quality={ratio === "wide" ? IMAGE_QUALITY.wide : IMAGE_QUALITY.card}
           preload={eager}
           className={imageClass}
         />
