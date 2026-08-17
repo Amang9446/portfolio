@@ -72,13 +72,13 @@ function applyCallout(node: Node) {
 
   // Only the first line can carry the marker. Soft line breaks live inside the
   // text node's value, so the body usually trails the marker in the same node.
-  const [firstLine] = first.value.split("\n", 1);
+  const [firstLine] = first.value.split(/\r?\n/, 1);
   const match = firstLine.match(markerPattern);
   if (!match) return;
 
   const kind = match[1].toLowerCase();
   const title = match[2].trim();
-  const remaining = first.value.slice(firstLine.length).replace(/^\n/, "");
+  const remaining = first.value.slice(firstLine.length).replace(/^\r?\n/, "");
 
   stripMarker(node, paragraph, remaining);
 

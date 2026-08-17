@@ -25,6 +25,14 @@ describe("callouts", () => {
     expect(html).not.toContain("[!NOTE]");
   });
 
+  it("supports CRLF line endings", () => {
+    const html = render("> [!IMPORTANT]\r\n> Body text.\r\n");
+
+    expect(html).toContain('data-callout="important"');
+    expect(html).toContain("Body text.");
+    expect(html).not.toContain("[!IMPORTANT]");
+  });
+
   it("renders a custom title as the callout label", () => {
     const html = render("> [!WARNING] Mind the cache\n> Body.\n");
 
