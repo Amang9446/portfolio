@@ -44,3 +44,6 @@ next-env.d.ts
 # local agent skills
 /.agents/
 /skills-lock.json
+
+# local static assets and blog images (kept on disk, not in git)
+/public/
