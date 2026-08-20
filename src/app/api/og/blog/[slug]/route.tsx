@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import sharp from "sharp";
+import { optimizedImageHosts } from "@/lib/image-hosts";
 import { getPostBySlug } from "@/lib/posts";
 import { getSiteContent } from "@/lib/settings";
 import { SOCIAL_IMAGE_SIZE } from "@/lib/social-image";
@@ -7,26 +8,44 @@ import { SOCIAL_IMAGE_SIZE } from "@/lib/social-image";
 export const runtime = "nodejs";
 export const revalidate = 60;
 
-function getBannerUrl(value: string | undefined) {
+export const MAX_BANNER_BYTES = 10 * 1024 * 1024;
+export const MAX_INPUT_PIXELS = 4096 * 4096;
+
+export function getBannerUrl(value: string | undefined): string | null {
   if (!value) return null;
 
   try {
     const url = new URL(value);
-    return url.protocol === "https:" ? url.toString() : null;
+    if (url.protocol !== "https:") return null;
+    const allowedHosts = new Set(optimizedImageHosts());
+    if (!allowedHosts.has(url.hostname)) return null;
+    return url.toString();
   } catch {
     return null;
   }
 }
 
-async function loadBanner(url: string | null) {
+export async function loadBanner(url: string | null) {
   if (!url) return null;
 
   try {
-    const response = await fetch(url, { next: { revalidate: 60 } });
+    const response = await fetch(url, {
+      next: { revalidate: 60 },
+      redirect: "error",
+      signal: AbortSignal.timeout(5000),
+    });
     const contentType = response.headers.get("content-type") ?? "";
     if (!response.ok || !contentType.startsWith("image/")) return null;
 
-    return Buffer.from(await response.arrayBuffer());
+    const contentLength = Number(response.headers.get("content-length"));
+    if (Number.isFinite(contentLength) && contentLength > MAX_BANNER_BYTES) {
+      return null;
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    if (arrayBuffer.byteLength > MAX_BANNER_BYTES) return null;
+
+    return Buffer.from(arrayBuffer);
   } catch {
     return null;
   }
@@ -55,7 +74,7 @@ export async function GET(
   const banner = await loadBanner(bannerUrl);
 
   if (banner) {
-    const png = await sharp(banner)
+    const png = await sharp(banner, { limitInputPixels: MAX_INPUT_PIXELS })
       .resize(SOCIAL_IMAGE_SIZE.width, SOCIAL_IMAGE_SIZE.height, {
         fit: "cover",
         position: "centre",

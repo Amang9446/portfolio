@@ -164,7 +164,7 @@
 /* Blog post markdown body — tuned for long-form reading */
 .markdown {
   font-size: 1.0625rem;
-  line-height: 1.8;
+  line-height: 1.7;
   color: var(--foreground);
   overflow-wrap: break-word;
 }
@@ -174,7 +174,7 @@
   }
 }
 .markdown > * + * {
-  margin-top: 1.4em;
+  margin-top: 1.1em;
 }
 .markdown h2,
 .markdown h3,
@@ -183,7 +183,7 @@
   text-wrap: balance;
 }
 .markdown h2 {
-  margin-top: 2.4em;
+  margin-top: 2em;
   font-size: 1.55rem;
   line-height: 1.3;
 }
@@ -203,6 +203,9 @@
 .markdown h2 + h4,
 .markdown h3 + h4 {
   margin-top: 1em;
+}
+.markdown h2 + * {
+  margin-top: 0.9em;
 }
 .markdown h2[id],
 .markdown h3[id] {
@@ -233,6 +236,9 @@
 }
 .markdown p {
   max-width: 72ch;
+}
+.markdown p + p {
+  margin-top: 0.85em;
 }
 .markdown a {
   color: var(--primary);
@@ -493,6 +499,12 @@
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
   margin-inline: auto;
+}
+.markdown img.article-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: auto 2 / 1;
 }
 /* Applied by article-lightbox.tsx once the zoom handler is live */
 .markdown img.article-image-zoom {

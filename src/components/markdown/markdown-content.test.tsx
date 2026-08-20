@@ -144,6 +144,7 @@ describe("article elements", () => {
 
     expect(html).toContain('loading="lazy"');
     expect(html).toContain('alt=""');
+    expect(html).toContain('class="article-image"');
   });
 
   it("renders a markdown title as a visible caption", () => {

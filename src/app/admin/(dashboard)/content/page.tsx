@@ -1,4 +1,5 @@
 import { getSiteContent } from "@/lib/settings";
+import { resolveAdminErrorMessage } from "@/lib/admin-feedback";
 import {
   saveHero,
   saveContact,
@@ -23,6 +24,7 @@ export default async function SiteContentPage({ searchParams }: PageProps) {
     searchParams,
     getSiteContent(),
   ]);
+  const errorMessage = resolveAdminErrorMessage(error);
   const { hero, contact, metadata, skills, sections } = content;
 
   const sectionToggles = [
@@ -48,9 +50,9 @@ export default async function SiteContentPage({ searchParams }: PageProps) {
         minute.
       </p>
 
-      {error && (
+      {errorMessage && (
         <p className="mt-6 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
-          {error}
+          {errorMessage}
         </p>
       )}
       {/* Section visibility */}

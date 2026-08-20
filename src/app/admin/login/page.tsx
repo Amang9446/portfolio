@@ -1,5 +1,6 @@
 import { signIn } from "../actions";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { resolveAdminErrorMessage } from "@/lib/admin-feedback";
 
 export const metadata = {
   title: "Admin login",
@@ -12,6 +13,7 @@ interface PageProps {
 
 export default async function LoginPage({ searchParams }: PageProps) {
   const { error } = await searchParams;
+  const errorMessage = resolveAdminErrorMessage(error);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-6 text-foreground">
@@ -28,9 +30,9 @@ export default async function LoginPage({ searchParams }: PageProps) {
           </p>
         )}
 
-        {error && (
+        {errorMessage && (
           <p className="mt-6 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
-            {error}
+            {errorMessage}
           </p>
         )}
 

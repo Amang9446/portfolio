@@ -1,6 +1,7 @@
 "use client";
 
 import { saveProject, deleteProject } from "@/app/admin/actions";
+import { resolveAdminErrorMessage } from "@/lib/admin-feedback";
 import type { DbProject } from "@/lib/projects";
 
 const inputClass =
@@ -18,7 +19,7 @@ export default function ProjectForm({ project, error }: ProjectFormProps) {
 
       {error && (
         <p className="mb-6 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
-          {error}
+          {resolveAdminErrorMessage(error)}
         </p>
       )}
 

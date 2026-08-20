@@ -87,10 +87,10 @@ describe("PostForm", () => {
 
   it("surfaces a server error passed in from the page", () => {
     const html = renderToStaticMarkup(
-      <PostForm post={post()} error="Slug already exists" />,
+      <PostForm post={post()} error="post-save-failed" />,
     );
 
-    expect(html).toContain("Slug already exists");
+    expect(html).toContain("Failed to save post. Please check the logs.");
   });
 
   it("offers Delete only for a saved post", () => {

@@ -7,6 +7,8 @@ import {
   deletePost,
   checkPostSlugAvailability,
 } from "@/app/admin/actions";
+import { defaultUrlTransform } from "react-markdown";
+import { resolveAdminErrorMessage } from "@/lib/admin-feedback";
 import MarkdownContent from "@/components/markdown/markdown-content";
 import EditorToolbar, {
   EDITOR_MODES,
@@ -223,11 +225,12 @@ export default function PostForm({ post, error }: PostFormProps) {
   };
 
   // Lets the preview render not-yet-uploaded images from browser memory
+  // while preserving react-markdown's default URL sanitization for all other URLs.
   const resolveImageUrl = (url: string) => {
     if (url.startsWith("local:")) {
       return pendingImages.current.get(url.slice(6))?.objectUrl ?? "";
     }
-    return url;
+    return defaultUrlTransform(url);
   };
 
   // --- formatting actions --------------------------------------------------
@@ -501,7 +504,7 @@ export default function PostForm({ post, error }: PostFormProps) {
 
       {error && (
         <p className="mb-6 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
-          {error}
+          {resolveAdminErrorMessage(error)}
         </p>
       )}
       {draftRestored && (

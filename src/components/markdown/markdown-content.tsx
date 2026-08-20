@@ -38,6 +38,7 @@ const LazyArticleImage: NonNullable<Components["img"]> = ({
   node,
   alt,
   title,
+  className,
   ...props
 }) => {
   void node;
@@ -51,7 +52,13 @@ const LazyArticleImage: NonNullable<Components["img"]> = ({
   // would be advertised even where the JS that implements it never loads.
   const image = (
     // eslint-disable-next-line @next/next/no-img-element
-    <img {...props} alt={alt ?? ""} loading="lazy" decoding="async" />
+    <img
+      {...props}
+      alt={alt ?? ""}
+      className={["article-image", className].filter(Boolean).join(" ")}
+      loading="lazy"
+      decoding="async"
+    />
   );
 
   // A markdown title (`![alt](src "caption")`) becomes a visible caption.

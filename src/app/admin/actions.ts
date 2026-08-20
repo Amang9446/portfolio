@@ -16,8 +16,9 @@ import {
   revalidatePublic,
 } from "@/lib/cache";
 import { slugify } from "@/lib/markdown-commands";
-import { postMediaPaths } from "@/lib/media";
+import { filterOrphanedMediaPaths } from "@/lib/media";
 import { parseTagsField } from "@/lib/tags";
+import { sanitizeHttpUrl } from "@/lib/urls";
 
 async function requireUser() {
   const supabase = await createClient();
@@ -54,38 +55,54 @@ export async function signIn(formData: FormData) {
     password,
   });
   if (error) {
-    redirect(`/admin/login?error=${encodeURIComponent(error.message)}`);
+    console.error("Admin sign-in failed:", error.message);
+    redirect(adminErrorUrl("/admin/login", "invalid-login"));
   }
   // Valid credentials but not an admin: end the session immediately.
   if (!isAdminEmail(email)) {
     await supabase.auth.signOut();
-    redirect(
-      `/admin/login?error=${encodeURIComponent("This account does not have admin access")}`,
-    );
+    redirect(adminErrorUrl("/admin/login", "unauthorized"));
   }
   redirect("/admin");
 }
 
 export async function changePassword(formData: FormData) {
   const supabase = await requireUser();
+  const currentPassword = String(formData.get("current_password") ?? "");
   const password = String(formData.get("password") ?? "");
   const confirm = String(formData.get("confirm") ?? "");
 
+  if (!currentPassword) {
+    redirect(adminErrorUrl("/admin/account", "current-password-incorrect"));
+  }
   if (password.length < 12) {
-    redirect(
-      adminErrorUrl(
-        "/admin/account",
-        "Password must be at least 12 characters",
-      ),
-    );
+    redirect(adminErrorUrl("/admin/account", "password-short"));
   }
   if (password !== confirm) {
-    redirect(adminErrorUrl("/admin/account", "Passwords do not match"));
+    redirect(adminErrorUrl("/admin/account", "password-mismatch"));
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user || !user.email) {
+    redirect("/admin/login");
+  }
+
+  // Re-verify current credentials before updating password
+  const { error: verifyError } = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password: currentPassword,
+  });
+  if (verifyError) {
+    console.error("Current password verification failed:", verifyError.message);
+    redirect(adminErrorUrl("/admin/account", "current-password-incorrect"));
   }
 
   const { error } = await supabase.auth.updateUser({ password });
   if (error) {
-    redirect(adminErrorUrl("/admin/account", error.message));
+    console.error("Failed to update password:", error.message);
+    redirect(adminErrorUrl("/admin/account", "password-update-failed"));
   }
   redirect(adminNoticeUrl("/admin/account", "password-updated"));
 }
@@ -130,7 +147,10 @@ export async function savePost(formData: FormData) {
     slug: String(formData.get("slug") ?? "").trim(),
     excerpt: String(formData.get("excerpt") ?? "").trim(),
     content: String(formData.get("content") ?? ""),
-    cover_image_url: String(formData.get("cover_image_url") ?? "").trim(),
+    cover_image_url:
+      sanitizeHttpUrl(String(formData.get("cover_image_url") ?? ""), {
+        allowRelative: true,
+      }) ?? "",
     cover_image_alt: String(formData.get("cover_image_alt") ?? "").trim(),
     show_on_home: formData.get("show_on_home") === "on",
     tags: parseTagsField(String(formData.get("tags") ?? "")),
@@ -139,16 +159,16 @@ export async function savePost(formData: FormData) {
       title: String(formData.get("meta_title") ?? "").trim(),
       description: String(formData.get("meta_description") ?? "").trim(),
       keywords: String(formData.get("meta_keywords") ?? "").trim(),
-      ogImage: String(formData.get("meta_og_image") ?? "").trim(),
+      ogImage:
+        sanitizeHttpUrl(String(formData.get("meta_og_image") ?? ""), {
+          allowRelative: true,
+        }) ?? "",
     },
   };
 
   if (!post.title || !post.slug) {
     redirect(
-      adminErrorUrl(
-        `/admin/posts/${id || "new"}`,
-        "Title and slug are required",
-      ),
+      adminErrorUrl(`/admin/posts/${id || "new"}`, "post-required-fields"),
     );
   }
 
@@ -161,7 +181,8 @@ export async function savePost(formData: FormData) {
       .eq("id", id)
       .maybeSingle();
     if (existing.error) {
-      redirect(adminErrorUrl(`/admin/posts/${id}`, existing.error.message));
+      console.error("Failed to load post for update:", existing.error.message);
+      redirect(adminErrorUrl(`/admin/posts/${id}`, "post-not-found"));
     }
     previousSlug = existing.data?.slug ?? null;
     const published_at = published
@@ -179,7 +200,8 @@ export async function savePost(formData: FormData) {
   }
 
   if (error) {
-    redirect(adminErrorUrl(`/admin/posts/${id || "new"}`, error.message));
+    console.error("Failed to save post:", error.message);
+    redirect(adminErrorUrl(`/admin/posts/${id || "new"}`, "post-save-failed"));
   }
 
   revalidatePublic();
@@ -195,7 +217,7 @@ export async function togglePostPublished(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const publish = formData.get("publish") === "true";
   if (!id) {
-    redirect(adminErrorUrl("/admin/posts", "Missing post ID"));
+    redirect(adminErrorUrl("/admin/posts", "post-missing-id"));
   }
 
   const existing = await supabase
@@ -204,7 +226,11 @@ export async function togglePostPublished(formData: FormData) {
     .eq("id", id)
     .maybeSingle();
   if (existing.error) {
-    redirect(adminErrorUrl("/admin/posts", existing.error.message));
+    console.error(
+      "Failed to load post for publish toggle:",
+      existing.error.message,
+    );
+    redirect(adminErrorUrl("/admin/posts", "post-not-found"));
   }
   const { error } = await supabase
     .from("posts")
@@ -216,7 +242,8 @@ export async function togglePostPublished(formData: FormData) {
     })
     .eq("id", id);
   if (error) {
-    redirect(adminErrorUrl("/admin/posts", error.message));
+    console.error("Failed to update post publish state:", error.message);
+    redirect(adminErrorUrl("/admin/posts", "post-save-failed"));
   }
 
   revalidatePublic();
@@ -241,14 +268,15 @@ export async function togglePostOnHome(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const showOnHome = formData.get("show_on_home") === "true";
   if (!id) {
-    redirect(adminErrorUrl("/admin/posts", "Missing post ID"));
+    redirect(adminErrorUrl("/admin/posts", "post-missing-id"));
   }
   const { error } = await supabase
     .from("posts")
     .update({ show_on_home: showOnHome })
     .eq("id", id);
   if (error) {
-    redirect(adminErrorUrl("/admin/posts", error.message));
+    console.error("Failed to update post show_on_home:", error.message);
+    redirect(adminErrorUrl("/admin/posts", "post-save-failed"));
   }
   revalidatePublic();
   revalidatePath("/admin/posts");
@@ -264,7 +292,7 @@ export async function deletePost(formData: FormData) {
   const supabase = await requireUser();
   const id = String(formData.get("id") ?? "");
   if (!id) {
-    redirect(adminErrorUrl("/admin/posts", "Missing post ID"));
+    redirect(adminErrorUrl("/admin/posts", "post-missing-id"));
   }
 
   // Read the body before deleting the row — it is the only record of which
@@ -284,25 +312,40 @@ export async function deletePost(formData: FormData) {
   }
   const slug = existing?.slug ?? null;
 
+  // Query remaining posts to ensure we never delete media still referenced by other posts
+  let safeMediaToDelete: string[] = [];
+  if (existing) {
+    const { data: otherPosts, error: otherLoadError } = await supabase
+      .from("posts")
+      .select("content, cover_image_url")
+      .neq("id", id);
+    if (otherLoadError) {
+      console.error(
+        "Failed to load remaining posts for media comparison:",
+        otherLoadError.message,
+      );
+    } else {
+      safeMediaToDelete = filterOrphanedMediaPaths(existing, otherPosts ?? []);
+    }
+  }
+
   const { error } = await supabase.from("posts").delete().eq("id", id);
   if (error) {
-    redirect(adminErrorUrl("/admin/posts", error.message));
+    console.error("Failed to delete post:", error.message);
+    redirect(adminErrorUrl("/admin/posts", "post-delete-failed"));
   }
 
   // Best-effort: the post is already gone, so a storage failure here should
   // leave orphaned files rather than a confusing error on a completed delete.
-  if (existing) {
-    const paths = postMediaPaths(existing);
-    if (paths.length > 0) {
-      const { error: storageError } = await supabase.storage
-        .from("media")
-        .remove(paths);
-      if (storageError) {
-        console.error(
-          "Post deleted, but its media could not be removed:",
-          storageError.message,
-        );
-      }
+  if (safeMediaToDelete.length > 0) {
+    const { error: storageError } = await supabase.storage
+      .from("media")
+      .remove(safeMediaToDelete);
+    if (storageError) {
+      console.error(
+        "Post deleted, but its media could not be removed:",
+        storageError.message,
+      );
     }
   }
 
@@ -324,7 +367,8 @@ async function upsertSetting(key: string, value: unknown, notice: AdminNotice) {
     .from("site_settings")
     .upsert({ key, value }, { onConflict: "key" });
   if (error) {
-    redirect(adminErrorUrl("/admin/content", error.message));
+    console.error(`Failed to update setting '${key}':`, error.message);
+    redirect(adminErrorUrl("/admin/content", "content-save-failed"));
   }
   revalidatePublic();
   redirect(adminNoticeUrl("/admin/content", notice));
@@ -338,7 +382,10 @@ export async function saveHero(formData: FormData) {
       title: String(formData.get("title") ?? "").trim(),
       subtitle: String(formData.get("subtitle") ?? "").trim(),
       description: String(formData.get("description") ?? "").trim(),
-      image: String(formData.get("image") ?? "").trim(),
+      image:
+        sanitizeHttpUrl(String(formData.get("image") ?? ""), {
+          allowRelative: true,
+        }) ?? "",
     },
     "hero-saved",
   );
@@ -349,14 +396,18 @@ export async function saveContact(formData: FormData) {
     {
       name: "GitHub",
       icon: "github",
-      url: String(formData.get("github") ?? "").trim(),
+      url: sanitizeHttpUrl(String(formData.get("github") ?? "")) ?? "",
     },
     {
       name: "LinkedIn",
       icon: "linkedin",
-      url: String(formData.get("linkedin") ?? "").trim(),
+      url: sanitizeHttpUrl(String(formData.get("linkedin") ?? "")) ?? "",
     },
-    { name: "X", icon: "x", url: String(formData.get("x") ?? "").trim() },
+    {
+      name: "X",
+      icon: "x",
+      url: sanitizeHttpUrl(String(formData.get("x") ?? "")) ?? "",
+    },
   ].filter((s) => s.url.length > 0);
 
   await upsertSetting(
@@ -407,7 +458,8 @@ export async function saveSections(formData: FormData) {
     { onConflict: "key" },
   );
   if (error) {
-    redirect(adminErrorUrl("/admin/content", error.message));
+    console.error("Failed to save sections:", error.message);
+    redirect(adminErrorUrl("/admin/content", "content-save-failed"));
   }
 
   const slugs = await loadPostSlugs(supabase);
@@ -439,10 +491,12 @@ export async function saveSkills(formData: FormData) {
   if (!del.error && rows.length > 0) {
     const ins = await supabase.from("skills").insert(rows);
     if (ins.error) {
-      redirect(adminErrorUrl("/admin/content", ins.error.message));
+      console.error("Failed to insert skills:", ins.error.message);
+      redirect(adminErrorUrl("/admin/content", "content-save-failed"));
     }
   } else if (del.error) {
-    redirect(adminErrorUrl("/admin/content", del.error.message));
+    console.error("Failed to delete skills:", del.error.message);
+    redirect(adminErrorUrl("/admin/content", "content-save-failed"));
   }
 
   revalidatePublic();
@@ -493,10 +547,13 @@ export async function saveProject(formData: FormData) {
   const project = {
     title: String(formData.get("title") ?? "").trim(),
     description: String(formData.get("description") ?? "").trim(),
-    image: String(formData.get("image") ?? "").trim(),
-    demo_url: String(formData.get("demo_url") ?? "").trim() || null,
-    github_url: String(formData.get("github_url") ?? "").trim() || null,
-    docs_url: String(formData.get("docs_url") ?? "").trim() || null,
+    image:
+      sanitizeHttpUrl(String(formData.get("image") ?? ""), {
+        allowRelative: true,
+      }) ?? "",
+    demo_url: sanitizeHttpUrl(String(formData.get("demo_url") ?? "")),
+    github_url: sanitizeHttpUrl(String(formData.get("github_url") ?? "")),
+    docs_url: sanitizeHttpUrl(String(formData.get("docs_url") ?? "")),
     tags: String(formData.get("tags") ?? "")
       .split(",")
       .map((t) => t.trim())
@@ -507,7 +564,10 @@ export async function saveProject(formData: FormData) {
 
   if (!project.title) {
     redirect(
-      adminErrorUrl(`/admin/projects/${id || "new"}`, "Title is required"),
+      adminErrorUrl(
+        `/admin/projects/${id || "new"}`,
+        "project-required-fields",
+      ),
     );
   }
 
@@ -522,7 +582,10 @@ export async function saveProject(formData: FormData) {
       });
 
   if (error) {
-    redirect(adminErrorUrl(`/admin/projects/${id || "new"}`, error.message));
+    console.error("Failed to save project:", error.message);
+    redirect(
+      adminErrorUrl(`/admin/projects/${id || "new"}`, "project-save-failed"),
+    );
   }
 
   revalidatePublic();
@@ -540,14 +603,15 @@ export async function toggleProjectVisibility(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const visible = formData.get("visible") === "true";
   if (!id) {
-    redirect(adminErrorUrl("/admin/projects", "Missing project ID"));
+    redirect(adminErrorUrl("/admin/projects", "project-missing-id"));
   }
   const { error } = await supabase
     .from("projects")
     .update({ visible })
     .eq("id", id);
   if (error) {
-    redirect(adminErrorUrl("/admin/projects", error.message));
+    console.error("Failed to toggle project visibility:", error.message);
+    redirect(adminErrorUrl("/admin/projects", "project-save-failed"));
   }
   revalidatePublic();
   revalidatePath("/admin/projects");
@@ -563,11 +627,12 @@ export async function deleteProject(formData: FormData) {
   const supabase = await requireUser();
   const id = String(formData.get("id") ?? "");
   if (!id) {
-    redirect(adminErrorUrl("/admin/projects", "Missing project ID"));
+    redirect(adminErrorUrl("/admin/projects", "project-missing-id"));
   }
   const { error } = await supabase.from("projects").delete().eq("id", id);
   if (error) {
-    redirect(adminErrorUrl("/admin/projects", error.message));
+    console.error("Failed to delete project:", error.message);
+    redirect(adminErrorUrl("/admin/projects", "project-delete-failed"));
   }
   revalidatePublic();
   redirect(adminNoticeUrl("/admin/projects", "project-deleted"));

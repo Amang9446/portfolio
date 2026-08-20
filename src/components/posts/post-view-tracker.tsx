@@ -17,6 +17,9 @@ export default function PostViewTracker({
   const recorded = useRef(false);
 
   useEffect(() => {
+    // Local visual checks may use production-backed environment variables.
+    if (process.env.NODE_ENV !== "production") return;
+
     // React may replay effects during development. Keep one increment for this
     // page mount while still counting a refresh or later return as a new visit.
     if (recorded.current) return;

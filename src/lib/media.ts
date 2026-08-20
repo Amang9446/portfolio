@@ -57,3 +57,24 @@ export function postMediaPaths(post: {
 
   return [...paths];
 }
+
+/**
+ * Filters out storage paths that are referenced by any other post, ensuring
+ * deleting a post never breaks media shared with or embedded across other articles.
+ */
+export function filterOrphanedMediaPaths(
+  targetPost: { content: string; cover_image_url: string },
+  otherPosts: Array<{ content: string; cover_image_url: string }>,
+): string[] {
+  const candidatePaths = postMediaPaths(targetPost);
+  if (candidatePaths.length === 0) return [];
+
+  const otherReferencedPaths = new Set<string>();
+  for (const other of otherPosts) {
+    for (const p of postMediaPaths(other)) {
+      otherReferencedPaths.add(p);
+    }
+  }
+
+  return candidatePaths.filter((path) => !otherReferencedPaths.has(path));
+}

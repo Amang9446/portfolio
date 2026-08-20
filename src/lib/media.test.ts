@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { postMediaPaths } from "./media";
+import { filterOrphanedMediaPaths, postMediaPaths } from "./media";
 
 const HOST = "abc.supabase.co";
 const base = `https://${HOST}/storage/v1/object/public/media/`;
@@ -147,5 +147,51 @@ describe("postMediaPaths", () => {
 
     expect(postMediaPaths(post)).toEqual(["1.png"]);
     expect(postMediaPaths(post)).toEqual(["1.png"]);
+  });
+});
+
+describe("filterOrphanedMediaPaths", () => {
+  it("returns all paths when other posts reference none of them", () => {
+    const target = {
+      content: `![a](${base}posts/target-1.png)`,
+      cover_image_url: `${base}posts/target-cover.png`,
+    };
+    const others = [
+      {
+        content: `![b](${base}posts/other.png)`,
+        cover_image_url: "",
+      },
+    ];
+
+    expect(filterOrphanedMediaPaths(target, others)).toEqual([
+      "posts/target-cover.png",
+      "posts/target-1.png",
+    ]);
+  });
+
+  it("filters out paths still referenced by other posts", () => {
+    const sharedImg = `${base}posts/shared.png`;
+    const target = {
+      content: `![a](${sharedImg})\n![b](${base}posts/unique.png)`,
+      cover_image_url: "",
+    };
+    const others = [
+      {
+        content: `![c](${sharedImg})`,
+        cover_image_url: "",
+      },
+    ];
+
+    expect(filterOrphanedMediaPaths(target, others)).toEqual([
+      "posts/unique.png",
+    ]);
+  });
+
+  it("returns empty array when target has no media", () => {
+    expect(
+      filterOrphanedMediaPaths({ content: "no media", cover_image_url: "" }, [
+        { content: "other", cover_image_url: "" },
+      ]),
+    ).toEqual([]);
   });
 });
