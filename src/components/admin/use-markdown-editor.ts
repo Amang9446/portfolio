@@ -6,6 +6,7 @@ import {
   minimalReplacement,
   type EditorCommand,
 } from "@/lib/markdown-commands";
+import { focusEditor } from "@/components/admin/editor-dom";
 
 interface UseMarkdownEditorOptions {
   content: string;
@@ -66,7 +67,7 @@ export function useMarkdownEditor({
         edit.text,
       );
 
-      el.focus();
+      focusEditor(el);
       el.setSelectionRange(start, end);
 
       let inserted = false;
@@ -78,7 +79,7 @@ export function useMarkdownEditor({
       if (!inserted) setContent(edit.text);
 
       requestAnimationFrame(() => {
-        el.focus();
+        focusEditor(el);
         el.setSelectionRange(edit.selStart, edit.selEnd);
         updateCursor();
       });

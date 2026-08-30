@@ -33,6 +33,7 @@ import {
 } from "@/lib/markdown-commands";
 import PostCover from "@/components/posts/post-cover";
 import type { Post } from "@/lib/posts";
+import { revealInvalidField } from "@/components/admin/editor-dom";
 
 interface PendingImage {
   file: File;
@@ -87,6 +88,7 @@ export default function PostForm({ post, error }: PostFormProps) {
   // browser until Save — referenced from markdown as local:<id>.
   const pendingImages = useRef<Map<string, PendingImage>>(new Map());
   const pendingCoverImage = useRef<PendingImage | null>(null);
+  const validationToastQueued = useRef(false);
 
   const editorVisible = mode !== "preview";
   const previewVisible = mode !== "write";
@@ -472,6 +474,24 @@ export default function PostForm({ post, error }: PostFormProps) {
     }
   };
 
+  const onInvalid = (event: React.InvalidEvent<HTMLFormElement>) => {
+    const field = event.target as HTMLInputElement;
+    revealInvalidField(field);
+
+    // Native validation happens before onSubmit, so save errors cannot catch
+    // these failures. Show one message per validation pass as well as opening
+    // any collapsed section that contains the invalid control.
+    if (!validationToastQueued.current) {
+      validationToastQueued.current = true;
+      toast.error(
+        field.validationMessage || "Please check the highlighted field.",
+      );
+      queueMicrotask(() => {
+        validationToastQueued.current = false;
+      });
+    }
+  };
+
   const { words, characters, minutes } = editorStats(content);
 
   return (
@@ -480,6 +500,7 @@ export default function PostForm({ post, error }: PostFormProps) {
       action={savePost}
       onSubmit={onSubmit}
       onKeyDown={onFormKeyDown}
+      onInvalid={onInvalid}
     >
       {post && <input type="hidden" name="id" value={post.id} />}
       <input
