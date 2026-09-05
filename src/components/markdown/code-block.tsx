@@ -3,10 +3,9 @@
 import { Check, Copy, WrapText, X } from "lucide-react";
 import { useRef, useState, type ComponentPropsWithoutRef } from "react";
 import { useCopyFeedback } from "@/components/ui/use-copy-feedback";
-import { parseCodeMeta } from "@/lib/rehype-code-lines";
 
 type CodeBlockProps = ComponentPropsWithoutRef<"pre"> & {
-  node?: unknown;
+  language?: string;
 };
 
 const LANGUAGE_NAMES: Record<string, string> = {
@@ -27,43 +26,6 @@ const LANGUAGE_NAMES: Record<string, string> = {
   xml: "XML",
 };
 
-// Read the declared language and fence meta from the hast `pre` node's <code>
-// child rather than from the rendered `children`. react-markdown's hast is
-// identical on server and client, whereas `children` can be a fragment/string
-// during hydration, which made the label flip (hydration mismatch).
-function codeInfo(node: unknown) {
-  const empty = {
-    language: undefined as string | undefined,
-    meta: undefined as string | undefined,
-  };
-  if (!node || typeof node !== "object") return empty;
-  const children = (node as { children?: unknown }).children;
-  if (!Array.isArray(children)) return empty;
-
-  for (const child of children) {
-    if (!child || typeof child !== "object") continue;
-    const c = child as {
-      tagName?: string;
-      properties?: { className?: unknown };
-      data?: { meta?: string };
-    };
-    if (c.tagName !== "code") continue;
-
-    const className = c.properties?.className;
-    const list = Array.isArray(className) ? className : [className];
-    const language = list
-      .find(
-        (cls): cls is string =>
-          typeof cls === "string" && cls.startsWith("language-"),
-      )
-      ?.match(/language-([\w-]+)/)?.[1];
-
-    return { language, meta: c.data?.meta };
-  }
-
-  return empty;
-}
-
 function codeLanguage(language: string | undefined) {
   if (!language) return "Code";
   return LANGUAGE_NAMES[language.toLowerCase()] ?? language.toUpperCase();
@@ -72,14 +34,12 @@ function codeLanguage(language: string | undefined) {
 export default function CodeBlock({
   children,
   className,
-  node,
+  language,
+  title,
 }: CodeBlockProps) {
   const codeRef = useRef<HTMLPreElement>(null);
   const [wrapped, setWrapped] = useState(false);
   const { status, showCopied, showCopyError } = useCopyFeedback();
-
-  const { language, meta } = codeInfo(node);
-  const { title } = parseCodeMeta(meta);
 
   const copyCode = async () => {
     const pre = codeRef.current;

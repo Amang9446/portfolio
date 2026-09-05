@@ -9,16 +9,14 @@ export default function Hero({ config }: HeroProps) {
   return (
     <header className="mx-auto max-w-5xl px-6 pt-20 pb-24 md:pt-32 md:pb-36">
       <div className="max-w-2xl">
-        <h1
-          className="reveal text-[clamp(2.5rem,7vw,4.5rem)] font-semibold leading-[1.05]"
-          style={{ "--reveal-delay": "0ms" } as React.CSSProperties}
-        >
+        <h1 className="text-[clamp(2.5rem,7vw,4.5rem)] font-semibold leading-[1.05]">
           <span className="flex items-center gap-4 md:gap-5">
             <Image
               alt={`Portrait of ${config.name}`}
               width={144}
               height={144}
-              priority
+              preload
+              sizes="(min-width: 1029px) 69px, (min-width: 572px) 6.65vw, 38px"
               className="h-[0.95em] w-[0.95em] shrink-0 rounded-full border border-border object-cover"
               src={config.image}
             />
@@ -32,17 +30,11 @@ export default function Hero({ config }: HeroProps) {
           </span>
         </h1>
 
-        <p
-          className="reveal mt-8 max-w-[52ch] text-base leading-relaxed text-muted-foreground"
-          style={{ "--reveal-delay": "260ms" } as React.CSSProperties}
-        >
+        <p className="mt-8 max-w-[52ch] text-base leading-relaxed text-muted-foreground">
           {config.description}
         </p>
 
-        <div
-          className="reveal mt-10 flex items-center gap-6"
-          style={{ "--reveal-delay": "340ms" } as React.CSSProperties}
-        >
+        <div className="mt-10 flex items-center gap-6">
           <a
             href="#projects"
             className="rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"

@@ -8,7 +8,7 @@ import {
   getArticleReadingData,
   type ArticleHeading,
 } from "@/lib/article-reading";
-import rehypeCodeLines from "@/lib/rehype-code-lines";
+import rehypeCodeLines, { parseCodeMeta } from "@/lib/rehype-code-lines";
 import remarkCallouts from "@/lib/remark-callouts";
 import { siteUrl } from "@/lib/site-url";
 import Callout from "./callout";
@@ -113,6 +113,59 @@ const ArticleTable: NonNullable<Components["table"]> = ({
   );
 };
 
+// Read the declared language and fence meta from the hast `pre` node's <code>
+// child rather than from the rendered `children`. react-markdown's hast is
+// identical on server and client, whereas `children` can be a fragment/string
+// during hydration, which made the label flip (hydration mismatch).
+function codeInfo(node: unknown) {
+  const empty = {
+    language: undefined as string | undefined,
+    meta: undefined as string | undefined,
+  };
+  if (!node || typeof node !== "object") return empty;
+  const children = (node as { children?: unknown }).children;
+  if (!Array.isArray(children)) return empty;
+
+  for (const child of children) {
+    if (!child || typeof child !== "object") continue;
+    const c = child as {
+      tagName?: string;
+      properties?: { className?: unknown };
+      data?: { meta?: string };
+    };
+    if (c.tagName !== "code") continue;
+
+    const className = c.properties?.className;
+    const list = Array.isArray(className) ? className : [className];
+    const language = list
+      .find(
+        (cls): cls is string =>
+          typeof cls === "string" && cls.startsWith("language-"),
+      )
+      ?.match(/language-([\w-]+)/)?.[1];
+
+    return { language, meta: c.data?.meta };
+  }
+
+  return empty;
+}
+
+// Extract toolbar data before the public article crosses the client boundary.
+// Sending `node` would duplicate the entire highlighted code tree in the payload.
+const ArticleCodeBlock: NonNullable<Components["pre"]> = ({
+  node,
+  children,
+  className,
+}) => {
+  const { language, meta } = codeInfo(node);
+  const { title } = parseCodeMeta(meta);
+  return (
+    <CodeBlock language={language} title={title} className={className}>
+      {children}
+    </CodeBlock>
+  );
+};
+
 function createHeadingComponent(
   tag: "h2" | "h3",
   headingIds: Map<number, string>,
@@ -123,7 +176,7 @@ function createHeadingComponent(
     const id = headingIds.get(node?.position?.start.line ?? -1);
 
     return (
-      <Heading {...props} id={id}>
+      <Heading {...props} id={id} tabIndex={id ? -1 : undefined}>
         {children}
         {id && (
           <a
@@ -159,7 +212,7 @@ export default function MarkdownContent({
         img: LazyArticleImage,
         a: ArticleLink,
         table: ArticleTable,
-        pre: CodeBlock,
+        pre: ArticleCodeBlock,
         blockquote: Callout,
       }
     : undefined;

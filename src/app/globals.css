@@ -648,3 +648,33 @@
     color: inherit;
   }
 }
+
+/* Public reading surface: leave editor previews at their existing scale. */
+.article-body {
+  font-size: 1.0625rem;
+  line-height: 1.85;
+  overflow-wrap: anywhere;
+}
+.article-body > :first-child {
+  margin-top: 0;
+}
+.article-body h2[id],
+.article-body h3[id] {
+  scroll-margin-top: 11rem;
+}
+@media (min-width: 1024px) {
+  .article-body {
+    font-size: 1.125rem;
+  }
+  .article-body h2[id],
+  .article-body h3[id] {
+    scroll-margin-top: 7rem;
+  }
+}
+
+/* In landscape, reserve the limited viewport height for the article. */
+@media (max-width: 1023px) and (max-height: 500px) {
+  .article-mobile-contents {
+    position: static;
+  }
+}

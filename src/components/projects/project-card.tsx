@@ -29,7 +29,7 @@ export default function ProjectCard({ project, index }: ProjectCardProps) {
             alt={project.title}
             loading="lazy"
             fill
-            sizes="(max-width: 768px) 100vw, 50vw"
+            sizes="(min-width: 1024px) 460px, (min-width: 768px) calc((100vw - 6.5rem) / 2), calc(100vw - 3rem)"
             className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
             src={project.image}
           />

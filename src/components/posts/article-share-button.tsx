@@ -39,7 +39,7 @@ export default function ArticleShareButton({
       type="button"
       onClick={shareArticle}
       aria-live="polite"
-      className="inline-flex items-center gap-1.5 font-mono text-xs tracking-wide text-muted-foreground transition-colors hover:text-foreground"
+      className="inline-flex min-h-11 items-center gap-1.5 font-mono text-xs tracking-wide text-muted-foreground transition-colors hover:text-foreground"
     >
       {status === "copied" ? (
         <Check aria-hidden="true" className="h-3.5 w-3.5" />

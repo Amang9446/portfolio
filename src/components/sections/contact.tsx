@@ -1,22 +1,12 @@
-"use client";
 import { ContactConfig } from "@/config/portfolio";
 import { getIcon } from "@/components/ui/icons";
-import { toast } from "sonner";
+import CopyEmailButton from "@/components/ui/copy-email-button";
 
 interface ContactProps {
   config: ContactConfig;
 }
 
 export default function Contact({ config }: ContactProps) {
-  const handleCopyEmail = async () => {
-    try {
-      await navigator.clipboard.writeText(config.email);
-      toast.success("Email copied to clipboard");
-    } catch (err) {
-      console.error("Failed to copy email:", err);
-    }
-  };
-
   return (
     <section id="contact" className="scroll-mt-20 border-t border-border">
       <div className="mx-auto max-w-5xl px-6 py-24 md:py-32">
@@ -45,14 +35,7 @@ export default function Contact({ config }: ContactProps) {
           >
             {config.email}
           </a>
-          <button
-            onClick={handleCopyEmail}
-            aria-label="Copy email address"
-            className="inline-flex h-9 items-center gap-2 rounded-md border border-border px-3 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
-          >
-            {getIcon("copy", { className: "h-3.5 w-3.5" })}
-            Copy
-          </button>
+          <CopyEmailButton email={config.email} />
         </div>
 
         <div className="mt-14 flex gap-2">

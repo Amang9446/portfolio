@@ -15,6 +15,7 @@ import PostGrid from "@/components/posts/post-grid";
 import PostLikeButton from "@/components/posts/post-like-button";
 import PostViewTracker from "@/components/posts/post-view-tracker";
 import TagList from "@/components/posts/tag-list";
+import { tagSlug } from "@/lib/tags";
 import { getArticleReadingData } from "@/lib/article-reading";
 import { getPostBySlug, getPublishedPosts } from "@/lib/posts";
 import { getSiteContent, pageTitle, twitterCreator } from "@/lib/settings";
@@ -124,9 +125,19 @@ export default async function BlogPostPage({ params }: PageProps) {
 
   const { headings, readingMinutes } = getArticleReadingData(post.content);
   const articleUrl = absoluteUrl(`/blog/${encodeURIComponent(post.slug)}`);
+  const topics = new Set((post.tags ?? []).map(tagSlug));
   const morePosts = publishedPosts
     .filter((publishedPost) => publishedPost.id !== post.id)
-    .slice(0, 2);
+    .map((publishedPost) => ({
+      post: publishedPost,
+      sharedTopics: (publishedPost.tags ?? []).filter((tag) =>
+        topics.has(tagSlug(tag)),
+      ).length,
+    }))
+    // Stable sort preserves publication order for equally relevant articles.
+    .sort((a, b) => b.sharedTopics - a.sharedTopics)
+    .slice(0, 2)
+    .map(({ post }) => post);
 
   return (
     <main className="flex min-h-screen flex-col bg-background text-foreground">
@@ -153,35 +164,45 @@ export default async function BlogPostPage({ params }: PageProps) {
         socialLinks={site.contact.socialLinks}
         sections={site.sections}
       />
-      <article className="mx-auto w-full max-w-5xl flex-1 px-6 py-20 md:py-28">
-        <div className="mx-auto max-w-3xl">
-          <div className="no-print flex items-center justify-between gap-4">
+      <article className="mx-auto w-full max-w-6xl flex-1 px-5 py-10 sm:px-6 md:py-16">
+        <header className="mx-auto max-w-3xl">
+          <div className="no-print flex flex-wrap items-center justify-between gap-4">
             <Link
               href="/blog"
-              className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:text-foreground"
+              className="inline-flex min-h-11 items-center font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:text-foreground"
             >
-              &larr; Blog
+              &larr; All articles
             </Link>
-            <ArticleMarkdownButton slug={post.slug} />
+            <a
+              href="#article-content"
+              className="inline-flex min-h-11 items-center text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
+            >
+              Skip to article
+            </a>
           </div>
-          <h1 className="mt-6 text-3xl font-semibold leading-tight md:text-4xl">
+          <h1 className="mt-6 text-3xl font-semibold leading-tight text-balance sm:text-4xl md:text-5xl">
             {post.title}
           </h1>
           {post.excerpt && (
-            <p className="mt-4 text-lg leading-relaxed text-balance text-muted-foreground">
+            <p className="mt-4 max-w-[60ch] text-lg leading-relaxed text-muted-foreground">
               {post.excerpt}
             </p>
           )}
-          <div className="mt-5 flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
-            <time
-              dateTime={post.published_at ?? undefined}
-              className="block font-mono text-xs tracking-wide text-muted-foreground"
-            >
-              {formatDate(post.published_at)}
-            </time>
-            <span aria-hidden="true" className="text-muted-foreground/50">
-              ·
-            </span>
+          <p className="mt-6 text-sm font-medium">By {site.metadata.author}</p>
+          <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+            {post.published_at && (
+              <>
+                <time
+                  dateTime={post.published_at}
+                  className="block font-mono text-xs tracking-wide text-muted-foreground"
+                >
+                  {formatDate(post.published_at)}
+                </time>
+                <span aria-hidden="true" className="text-muted-foreground/50">
+                  ·
+                </span>
+              </>
+            )}
             <span className="font-mono text-xs tracking-wide text-muted-foreground">
               {readingMinutes} min read
             </span>
@@ -194,37 +215,38 @@ export default async function BlogPostPage({ params }: PageProps) {
                 postId={post.id}
                 initialCount={post.view_count}
               />
-              <span aria-hidden="true" className="text-muted-foreground/50">
-                ·
-              </span>
-              <ArticleShareButton title={post.title} url={articleUrl} />
             </span>
           </div>
           <TagList tags={post.tags} className="mt-4" />
-        </div>
+          <div className="no-print mt-6 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-border pt-4">
+            <ArticleShareButton title={post.title} url={articleUrl} />
+            <ArticleMarkdownButton slug={post.slug} />
+          </div>
+        </header>
 
         <PostCover
           post={post}
           ratio="wide"
           fallback="none"
-          className="mt-10 md:mt-12"
+          className="mt-8 md:mt-12"
           eager
         />
 
         <div
-          className={`mx-auto mt-12 md:mt-16 ${
+          className={`mx-auto mt-8 md:mt-16 ${
             headings.length >= 2
-              ? "max-w-5xl lg:grid lg:grid-cols-[minmax(0,1fr)_12rem] lg:gap-12"
+              ? "max-w-6xl lg:grid lg:grid-cols-[minmax(0,1fr)_14rem] lg:gap-12"
               : "max-w-3xl"
           }`}
         >
           {headings.length >= 2 && (
-            <ArticleTableOfContents headings={headings} />
+            <ArticleTableOfContents key={post.id} headings={headings} />
           )}
           <div
             id="article-content"
-            className={`markdown min-w-0 max-w-3xl lg:col-start-1 lg:row-start-1 ${
-              headings.length >= 2 ? "mt-10 lg:mt-0" : ""
+            tabIndex={-1}
+            className={`markdown article-body min-w-0 max-w-3xl scroll-mt-36 lg:col-start-1 lg:row-start-1 ${
+              headings.length >= 2 ? "mt-6 lg:mt-0" : ""
             }`}
           >
             <MarkdownContent
@@ -262,7 +284,20 @@ export default async function BlogPostPage({ params }: PageProps) {
           <h2 id="keep-reading-heading" className="mt-3 text-2xl font-semibold">
             Keep reading
           </h2>
-          <PostGrid posts={morePosts} className="mt-10" />
+          <p className="mt-3 text-muted-foreground">
+            {morePosts.some((item) =>
+              (item.tags ?? []).some((tag) => topics.has(tagSlug(tag))),
+            )
+              ? "More perspectives on the topics in this article."
+              : "Explore the latest notes from the blog."}
+          </p>
+          <PostGrid posts={morePosts} className="mt-8" />
+          <Link
+            href="/blog"
+            className="mt-10 inline-flex min-h-11 items-center text-sm text-primary underline underline-offset-4"
+          >
+            Browse all articles &rarr;
+          </Link>
         </section>
       )}
       <Footer author={site.metadata.author} />

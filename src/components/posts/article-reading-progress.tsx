@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef } from "react";
 import { useRafScrollEffect } from "@/components/ui/use-raf-scroll-effect";
 
 interface ArticleReadingProgressProps {
@@ -10,11 +10,11 @@ interface ArticleReadingProgressProps {
 export default function ArticleReadingProgress({
   contentId,
 }: ArticleReadingProgressProps) {
-  const [progress, setProgress] = useState(0);
+  const progressBar = useRef<HTMLDivElement>(null);
 
   useRafScrollEffect(() => {
     const content = document.getElementById(contentId);
-    if (!content) return;
+    if (!content || !progressBar.current) return;
 
     const contentTop = window.scrollY + content.getBoundingClientRect().top;
     const readableDistance = Math.max(
@@ -22,7 +22,10 @@ export default function ArticleReadingProgress({
       1,
     );
     const nextProgress = (window.scrollY - contentTop) / readableDistance;
-    setProgress(Math.min(1, Math.max(0, nextProgress)));
+    // This is a per-frame visual update, not application state. Avoid a React
+    // render/commit on every scroll frame just to change one transform.
+    const progress = Math.min(1, Math.max(0, nextProgress));
+    progressBar.current.style.transform = `scaleX(${progress})`;
   }, true);
 
   return (
@@ -31,8 +34,9 @@ export default function ArticleReadingProgress({
       className="no-print pointer-events-none fixed inset-x-0 top-0 z-50 h-0.5 bg-transparent"
     >
       <div
+        ref={progressBar}
         className="h-full origin-left bg-primary will-change-transform"
-        style={{ transform: `scaleX(${progress})` }}
+        style={{ transform: "scaleX(0)" }}
       />
     </div>
   );

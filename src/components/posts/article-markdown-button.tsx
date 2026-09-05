@@ -14,7 +14,7 @@ export default function ArticleMarkdownButton({
       href={articleMarkdownPath(slug)}
       type="text/markdown"
       title="Open this article as Markdown for LLMs"
-      className="inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:text-foreground"
+      className="inline-flex min-h-11 items-center gap-1.5 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:text-foreground"
     >
       <FileText aria-hidden="true" className="h-3.5 w-3.5" />
       For LLMs
