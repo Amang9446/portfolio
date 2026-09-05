@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { getBannerUrl, loadBanner, MAX_BANNER_BYTES } from "./route";
+import { getBannerUrl, loadBanner, MAX_BANNER_BYTES } from "./blog-og-banner";
 
 describe("getBannerUrl SSRF Protection", () => {
   beforeEach(() => {
@@ -122,7 +122,7 @@ describe("loadBanner fetch hardening", () => {
   });
 
   it("successfully returns Buffer for valid image responses", async () => {
-    const sampleData = new Uint8Array([0x89, 0x50, 0x4e, 0x47]); // PNG signature
+    const sampleData = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(

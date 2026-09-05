@@ -487,9 +487,24 @@ create policy "Admins can delete projects"
 -- ---------------------------------------------------------------------------
 -- Storage: public media bucket, admin-only writes
 -- ---------------------------------------------------------------------------
-insert into storage.buckets (id, name, public)
-values ('media', 'media', true)
-on conflict (id) do nothing;
+insert into storage.buckets (
+  id,
+  name,
+  public,
+  file_size_limit,
+  allowed_mime_types
+)
+values (
+  'media',
+  'media',
+  true,
+  10485760,
+  array['image/avif', 'image/gif', 'image/jpeg', 'image/png', 'image/webp']
+)
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
 
 drop policy if exists "Public can read media" on storage.objects;
 create policy "Public can read media"

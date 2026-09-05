@@ -20,9 +20,9 @@ schema_paths = []
 
 [storage]
 enabled = true
-# The `media` bucket holds article banners and inline images. Supabase's free
-# tier caps uploads at 50 MB, which is what the admin editor enforces.
-file_size_limit = "50MiB"
+# The `media` bucket holds article banners and inline images. Ten MiB is ample
+# for web images and caps the impact of any accidentally shared signed slot.
+file_size_limit = "10MiB"
 
 [auth]
 # Set this to your production origin before deploying, so password-reset and

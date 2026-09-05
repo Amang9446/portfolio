@@ -34,6 +34,7 @@ import {
 import PostCover from "@/components/posts/post-cover";
 import type { Post } from "@/lib/posts";
 import { revealInvalidField } from "@/components/admin/editor-dom";
+import AgentImageHandoff from "@/components/admin/agent-image-handoff";
 
 interface PendingImage {
   file: File;
@@ -43,7 +44,14 @@ interface PendingImage {
 // Upload paths contain a timestamp, so each URL is immutable and can be
 // cached by browsers and the CDN for one year.
 const PUBLIC_MEDIA_CACHE_SECONDS = "31536000";
-const MAX_IMAGE_BYTES = 50 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = new Set([
+  "image/avif",
+  "image/gif",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
 // Roughly where search engines start truncating descriptions
 const EXCERPT_HINT_LENGTH = 160;
 
@@ -158,9 +166,9 @@ export default function PostForm({ post, error }: PostFormProps) {
     (files: File[]) => {
       let accepted = 0;
       for (const file of files) {
-        if (!file.type.startsWith("image/")) continue;
+        if (!ALLOWED_IMAGE_TYPES.has(file.type)) continue;
         if (file.size > MAX_IMAGE_BYTES) {
-          toast.error(`"${file.name}" exceeds the 50 MB upload limit.`);
+          toast.error(`"${file.name}" exceeds the 10 MiB upload limit.`);
           continue;
         }
         const id = crypto.randomUUID();
@@ -173,7 +181,7 @@ export default function PostForm({ post, error }: PostFormProps) {
         accepted++;
       }
       if (files.length > 0 && accepted === 0) {
-        toast.error("Only image files can be inserted.");
+        toast.error("Use an AVIF, GIF, JPEG, PNG, or WebP image.");
       }
     },
     [run],
@@ -200,8 +208,12 @@ export default function PostForm({ post, error }: PostFormProps) {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
+    if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+      toast.error("Use an AVIF, GIF, JPEG, PNG, or WebP image.");
+      return;
+    }
     if (file.size > MAX_IMAGE_BYTES) {
-      toast.error("Max file size is 50 MB (Supabase free tier limit).");
+      toast.error("Max image size is 10 MiB.");
       return;
     }
 
@@ -506,7 +518,7 @@ export default function PostForm({ post, error }: PostFormProps) {
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept=".avif,.gif,.jpeg,.jpg,.png,.webp"
         multiple
         onChange={onImagePicked}
         className="hidden"
@@ -516,7 +528,7 @@ export default function PostForm({ post, error }: PostFormProps) {
       <input
         ref={coverFileInputRef}
         type="file"
-        accept="image/*"
+        accept=".avif,.gif,.jpeg,.jpg,.png,.webp"
         onChange={onCoverImagePicked}
         className="hidden"
         aria-hidden="true"
@@ -749,6 +761,8 @@ export default function PostForm({ post, error }: PostFormProps) {
           </span>
         </div>
       </div>
+
+      {post && !post.published && <AgentImageHandoff slug={slug} />}
 
       {/* Per-post SEO metadata */}
       <details className="mt-6 rounded-md border border-border">

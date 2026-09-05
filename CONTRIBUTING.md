@@ -59,6 +59,33 @@ conventions documented above the policy section in `schema.sql`.
 public article and the admin split preview, so they can never disagree. It is
 covered by `markdown-content.test.tsx`; add a case there for any change.
 
+### Agent-assisted draft image uploads
+
+Agents never receive an admin session or service-role key. They prepare a
+non-secret request describing the exact local files:
+
+```bash
+node scripts/draft-image-upload.mjs request \
+  path/to/cover.webp path/to/diagram.webp
+```
+
+Paste the printed request into **Agent image upload** on the saved, unpublished
+post. Review the filenames, sizes, and MIME types, then click **Approve exact
+files**. The authenticated editor asks Supabase Storage for non-overwriting
+signed upload URLs and downloads the handoff JSON. Give only that downloaded
+file back to the agent and run the command printed by `request`.
+On the same Mac, the downloaded filename contains the request id, so the agent
+already knows its exact path in `Downloads`; saying “done” is enough unless the
+browser saves downloads somewhere else.
+
+The handoff is restricted to new, random paths under that post, ends five
+minutes before Supabase's two-hour token lifetime, and contains no admin or
+service-role credential. The local command verifies every SHA-256 hash before
+network access, records progress so interrupted batches resume safely, and
+deletes its temporary credentials after success. It uploads media only—it never
+edits the article body or metadata. Do not commit or paste a handoff file into an
+issue; discard it or wait for it to expire if the batch is cancelled.
+
 **`rehype-code-lines.ts` and `code-block.tsx` are coupled.** The rehype plugin
 removes the newline text nodes between lines, which is why the copy button
 rejoins `.code-line` elements by hand. Change one, check the other.

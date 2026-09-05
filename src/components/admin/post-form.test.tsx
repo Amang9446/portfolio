@@ -99,4 +99,16 @@ describe("PostForm", () => {
     );
     expect(renderToStaticMarkup(<PostForm />)).not.toContain(">Delete<");
   });
+
+  it("offers exact-file agent uploads only for a saved draft", () => {
+    expect(
+      renderToStaticMarkup(<PostForm post={post({ published: false })} />),
+    ).toContain("Agent image upload");
+    expect(renderToStaticMarkup(<PostForm post={post()} />)).not.toContain(
+      "Agent image upload",
+    );
+    expect(renderToStaticMarkup(<PostForm />)).not.toContain(
+      "Agent image upload",
+    );
+  });
 });

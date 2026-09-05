@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 import sharp from "sharp";
-import { optimizedImageHosts } from "@/lib/image-hosts";
+import { getBannerUrl, loadBanner } from "@/lib/blog-og-banner";
 import { getPostBySlug } from "@/lib/posts";
 import { getSiteContent } from "@/lib/settings";
 import { SOCIAL_IMAGE_SIZE } from "@/lib/social-image";
@@ -8,48 +8,7 @@ import { SOCIAL_IMAGE_SIZE } from "@/lib/social-image";
 export const runtime = "nodejs";
 export const revalidate = 60;
 
-export const MAX_BANNER_BYTES = 10 * 1024 * 1024;
-export const MAX_INPUT_PIXELS = 4096 * 4096;
-
-export function getBannerUrl(value: string | undefined): string | null {
-  if (!value) return null;
-
-  try {
-    const url = new URL(value);
-    if (url.protocol !== "https:") return null;
-    const allowedHosts = new Set(optimizedImageHosts());
-    if (!allowedHosts.has(url.hostname)) return null;
-    return url.toString();
-  } catch {
-    return null;
-  }
-}
-
-export async function loadBanner(url: string | null) {
-  if (!url) return null;
-
-  try {
-    const response = await fetch(url, {
-      next: { revalidate: 60 },
-      redirect: "error",
-      signal: AbortSignal.timeout(5000),
-    });
-    const contentType = response.headers.get("content-type") ?? "";
-    if (!response.ok || !contentType.startsWith("image/")) return null;
-
-    const contentLength = Number(response.headers.get("content-length"));
-    if (Number.isFinite(contentLength) && contentLength > MAX_BANNER_BYTES) {
-      return null;
-    }
-
-    const arrayBuffer = await response.arrayBuffer();
-    if (arrayBuffer.byteLength > MAX_BANNER_BYTES) return null;
-
-    return Buffer.from(arrayBuffer);
-  } catch {
-    return null;
-  }
-}
+const MAX_INPUT_PIXELS = 4096 * 4096;
 
 const cacheControl =
   "public, max-age=0, s-maxage=60, stale-while-revalidate=86400";

@@ -47,8 +47,30 @@ The `NEXT_PUBLIC_SUPABASE_ANON_KEY` is meant to be shipped to the browser. It
 carries no privileges of its own — every table has RLS enabled, so a leaked
 anon key cannot write.
 
-**Never add a service-role key to this project.** Nothing here needs one, and it
-would bypass every policy above.
+**Never add a service-role key to this project.** The app, browser, local upload
+command, and agent workflow do not need one; it would bypass every policy above.
+
+### Agent-assisted draft image uploads
+
+There is no custom public upload endpoint and no database grant table. A saved,
+unpublished post exposes an approval panel only inside the authenticated admin
+editor. The admin reviews a non-secret file request, and their existing Supabase
+session creates native signed upload URLs for exact, random object paths with
+`upsert` disabled. The agent receives only those temporary URLs—not the admin
+session—and the URLs expire automatically after two hours (the local handoff
+stops using them five minutes earlier).
+
+The `media` bucket accepts only AVIF, GIF, JPEG, PNG, and WebP files up to 10
+MiB. The local command verifies the approved path, origin, MIME type, byte size,
+and SHA-256 hash before sending a file. It records each success before moving to
+the next file, so retries cannot accidentally overwrite earlier uploads.
+
+A signed upload URL is still a short-lived bearer credential: anyone who obtains
+one can fill that one new path until it expires. Keep handoff JSON out of source
+control and logs, give it only to the requesting agent, and discard it after
+use. This is the narrow privilege needed for delegated upload; fully autonomous
+uploads with no approval would require a standing credential and are not
+supported.
 
 ### Public RPCs
 
