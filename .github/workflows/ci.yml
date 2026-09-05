@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main, v2]
+  pull_request:
+
+# A newer push to the same branch makes the in-flight run irrelevant.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Lint, typecheck, test, build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Format
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      # No Supabase credentials here on purpose: this exercises the
+      # unconfigured path, so the static-fallback promise in the README stays
+      # true. isSupabaseConfigured() returns false and every DB call is skipped.
+      - name: Build
+        run: npm run build

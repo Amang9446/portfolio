@@ -1,0 +1,92 @@
+import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { portfolioConfig, type Project } from "@/config/portfolio";
+
+export interface DbProject {
+  id: string;
+  title: string;
+  description: string;
+  image: string;
+  demo_url: string | null;
+  github_url: string | null;
+  docs_url: string | null;
+  tags: string[];
+  sort_order: number;
+  visible: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+function toProject(row: DbProject): Project {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    image: row.image,
+    demoUrl: row.demo_url ?? undefined,
+    githubUrl: row.github_url ?? undefined,
+    docsUrl: row.docs_url ?? undefined,
+    tags: row.tags,
+  };
+}
+
+// Projects from Supabase. Static config is used only when the DB is
+// unconfigured or the table is truly empty — never on query errors, so a
+// blip cannot republish hidden CMS projects.
+export async function getProjects(): Promise<Project[]> {
+  if (!isSupabaseConfigured()) return portfolioConfig.projects;
+  const supabase = createPublicClient();
+  const { data, error } = await supabase
+    .from("projects")
+    .select("*")
+    .eq("visible", true)
+    .order("sort_order", { ascending: true });
+  if (error) {
+    console.error("Failed to load projects:", error.message);
+    return [];
+  }
+  if (data && data.length > 0) {
+    return (data as unknown as DbProject[]).map(toProject);
+  }
+
+  // RLS hides invisible rows from this anon client, so an empty select is
+  // ambiguous. Fall back to static config only when the table has no rows.
+  const { data: hasRows, error: existsError } =
+    await supabase.rpc("has_any_projects");
+  if (existsError) {
+    console.error("Failed to check projects catalog:", existsError.message);
+    return [];
+  }
+  if (hasRows) return [];
+  return portfolioConfig.projects;
+}
+
+export async function getAllDbProjects(): Promise<DbProject[]> {
+  if (!isSupabaseConfigured()) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("projects")
+    .select("*")
+    .order("sort_order", { ascending: true });
+  if (error) {
+    console.error("Failed to load projects:", error.message);
+    return [];
+  }
+  return data ?? [];
+}
+
+export async function getDbProjectById(id: string): Promise<DbProject | null> {
+  if (!isSupabaseConfigured()) return null;
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("projects")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) {
+    console.error("Failed to load project:", error.message);
+    return null;
+  }
+  return data;
+}
